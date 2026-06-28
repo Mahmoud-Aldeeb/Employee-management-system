@@ -22,7 +22,7 @@ const Employees = () => {
       setLoading(false);
     }, 1000);
     return timer;
-  }, []);
+  }, [selectedDept]);
 
   useEffect(() => {
     const timer = fetchEmployees();
