@@ -7,7 +7,7 @@ import Employee from "../models/Employee.js";
 export const clockInOut = async (req, res) => {
   try {
     const session = req.session;
-    const employee = await Employee.findOne({ userId: session.userId });
+    const employee = await Employee.findOne({ userId: session.id });
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -25,7 +25,13 @@ export const clockInOut = async (req, res) => {
     const now = new Date();
     if (!existing) {
       const isLate = now.getHours() >= 9 && now.getMinutes() > 0; // Assuming 9:00 AM is the late threshold
-      const attendance = new Attendance({
+      // const attendance = await Attendance({
+      //   employeeId: employee._id,
+      //   date: today,
+      //   checkIn: now,
+      //   status: isLate ? "LATE" : "PRESENT",
+      // });
+      const attendance = await Attendance.create({
         employeeId: employee._id,
         date: today,
         checkIn: now,
@@ -42,9 +48,11 @@ export const clockInOut = async (req, res) => {
         .status(200)
         .json({ success: true, type: "CHECK_IN", data: attendance });
     } else if (!existing.checkOut) {
-      const checkInTime = now - new Date(existing.checkIn).getTime();
-      const diffMs = now.getTime() - checkInTime;
-      const diffHours = Math.floor(diffMs / 3600000); // hours
+      // const checkInTime = now - new Date(existing.checkIn).getTime();
+      // const diffMs = now.getTime() - checkInTime;
+      // const diffHours = Math.floor(diffMs / 3600000); // hours
+      const diffMs = now.getTime() - new Date(existing.checkIn).getTime();
+      const diffHours = Math.floor(diffMs / 3600000);
       existing.checkOut = now;
       // Compute working hours and day type
       const workingHours = parseFloat(diffHours.toFixed(2));
@@ -80,7 +88,7 @@ export const clockInOut = async (req, res) => {
 export const getAttendance = async (req, res) => {
   try {
     const session = req.session;
-    const employee = await Employee.findOne({ userId: session.userId });
+    const employee = await Employee.findOne({ userId: session.id });
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }

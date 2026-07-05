@@ -2,6 +2,7 @@ import { DEPARTMENTS } from "../constants/departments.js";
 import Attendance from "../models/Attendance.js";
 import Employee from "../models/Employee.js";
 import LeaveApplication from "../models/LeaveApplication.js";
+import Payslip from "../models/Payslip.js";
 
 // Get dashboard for employees and admin
 // GET /api/dashboard
@@ -30,7 +31,7 @@ export const getDashboard = async (req, res) => {
       });
     } else {
       const employee = await Employee.findOne({
-        userId: session.userId,
+        userId: session.id,
       }).lean();
       if (!employee)
         return res.status(404).json({ error: "Employee not found" });

@@ -4,24 +4,49 @@ import Loading from "../components/Loading";
 import { Lock } from "lucide-react";
 import ProfileForm from "../components/ProfileForm";
 import ChangePasswordModal from "../components/ChangePasswordModal";
-
+import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
+import { toast } from "react-hot-toast";
 const Settings = () => {
-  const [profile, SetProfile] = useState(null);
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const fetchProfile = useCallback(() => {
-    const timer = setTimeout(() => {
-      SetProfile(dummyProfileData);
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get("/profile");
+      const profile = res.data;
+      if (profile) setProfile(profile);
+    } catch (error) {
+      console.error("Failed to fetch profile:" + error);
+      toast.error(error.response?.data?.error || error.message);
+    } finally {
       setLoading(false);
-    }, 1000);
-    return timer;
-  }, []);
+    }
+  };
 
   useEffect(() => {
-    const timer = fetchProfile();
-    return () => clearTimeout(timer);
-  }, [fetchProfile]);
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await api.get("/profile");
+        const profile = res.data;
+        if (!cancelled && profile) {
+          setProfile(profile);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile:" + error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) return <Loading />;
   return (

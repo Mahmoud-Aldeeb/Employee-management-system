@@ -67,7 +67,7 @@ export const changePassword = async (req, res) => {
         .status(400)
         .json({ error: "Current and new passwords are required" });
     }
-    const user = await User.findById(session.userId);
+    const user = await User.findById(session.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -77,7 +77,7 @@ export const changePassword = async (req, res) => {
     }
     const hashed = await bcrypt.hash(newPassword, 10);
 
-    await user.findByIdAndUpdate(session.userId, { password: hashed });
+    await User.findByIdAndUpdate(session.id, { password: hashed });
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Change Password Error:", error);

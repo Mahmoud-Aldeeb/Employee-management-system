@@ -7,26 +7,34 @@ import {
   DollarSignIcon,
   FileSignalIcon,
   LayoutGridIcon,
+  Loader2,
   LogOutIcon,
   MenuIcon,
   SettingsIcon,
   UserIcon,
   XIcon,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
 
 const Sidebar = () => {
   const { pathname } = useLocation();
   const [userName, setUserName] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const { user, loading, logout } = useAuth();
+
   useEffect(() => {
-    setUserName(dummyProfileData.firstName + " " + dummyProfileData.lastName);
+    api.get("/profile").then(({ data }) => {
+      if (data.firstName)
+        setUserName(`${data.firstName} ${data.lastName || ""} `);
+    });
   }, []);
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  const role = "ADMIN" || "EMPLOYEE";
+  const role = user?.role;
   const navItems = [
     {
       name: "Dashboard",
@@ -62,6 +70,7 @@ const Sidebar = () => {
   ];
 
   const handelLogout = () => {
+    logout();
     window.location.href = "/login";
   };
 
@@ -117,26 +126,33 @@ const Sidebar = () => {
         </p>
       </div>
       {/* Navigation List */}
-      <div>
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150 relative ${isActive ? "bg-indigo-500/12 text-indigo-300" : "text-slate-300 hover:text-white hover:bg-white/4"}`}
-            >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-5 rounded-r-full bg-indigo-500" />
-              )}
-              <item.icon
-                className={`w-4.25 h-4.25 shrink-0 ${isActive ? "text-indigo-300" : "text-slate-400 group-hover:text-slate-300"}`}
-              />
-              <span className="flex-1">{item.name}</span>
-              {isActive && <ChevronRightIcon />}
-            </Link>
-          );
-        })}
+      <div className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        {loading ? (
+          <div className="px-3 py-3 flex items-center gap-2 text-slate-500">
+            <Loader2 className="size-4 animate-spin" />
+            <span className="text-sm">Loading...</span>
+          </div>
+        ) : (
+          navItems.map((item) => {
+            const isActive = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150 relative ${isActive ? "bg-indigo-500/12 text-indigo-300" : "text-slate-300 hover:text-white hover:bg-white/4"}`}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-5 rounded-r-full bg-indigo-500" />
+                )}
+                <item.icon
+                  className={`w-4.25 h-4.25 shrink-0 ${isActive ? "text-indigo-300" : "text-slate-400 group-hover:text-slate-300"}`}
+                />
+                <span className="flex-1">{item.name}</span>
+                {isActive && <ChevronRightIcon />}
+              </Link>
+            );
+          })
+        )}
       </div>
 
       {/* Logout */}

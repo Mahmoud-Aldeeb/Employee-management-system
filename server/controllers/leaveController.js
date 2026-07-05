@@ -7,7 +7,8 @@ import LeaveApplication from "../models/LeaveApplication.js";
 export const createLeave = async (req, res) => {
   try {
     const session = req.session;
-    const employee = await Employee.findById({ userId: session.userId });
+    console.log("SESSION:", session);
+    const employee = await Employee.findOne({ userId: session.id });
     if (!employee) {
       return res.status(404).json({ error: "Employee not found" });
     }
@@ -37,7 +38,7 @@ export const createLeave = async (req, res) => {
         .json({ error: "End date cannot be before start date" });
     }
 
-    const leave = await Leave.create({
+    const leave = await LeaveApplication.create({
       employeeId: employee._id,
       type,
       startDate: new Date(startDate),
@@ -53,10 +54,10 @@ export const createLeave = async (req, res) => {
 
     return res.status(201).json({ success: true, data: leave });
   } catch (error) {
+    console.error("Create Leave Error:", error);
     return res.status(500).json({ error: "Error creating leave" });
   }
 };
-
 // get leaves
 // GET /api/leaves
 export const getLeaves = async (req, res) => {
@@ -81,7 +82,7 @@ export const getLeaves = async (req, res) => {
       return res.status(200).json({ success: true, data: data });
     } else {
       const employee = await Employee.findOne({
-        userId: session.userId,
+        userId: session.id,
       }).lean();
       if (!employee) {
         return res.status(404).json({ error: "Employee not found" });

@@ -12,8 +12,8 @@ export const getEmployees = async (req, res) => {
     if (department) {
       where.department = department;
     }
-    const employees = await Employee.findAll({ where })
-      .toSorted({ createdAt: -1 })
+    const employees = await Employee.find(where)
+      .sort({ createdAt: -1 })
       .populate("userId", "email role")
       .lean();
     const result = employees.map((emp) => ({
@@ -114,7 +114,6 @@ export const updateEmployee = async (req, res) => {
     }
 
     await Employee.findByIdAndUpdate(id, {
-      userId: user._id,
       firstName,
       lastName,
       email,

@@ -16,7 +16,7 @@ export const createPayslip = async (req, res) => {
       Number(basicSalary) + Number(allowances || 0) - Number(deductions || 0);
     // Save payslip to database
 
-    const payslip = new Payslip({
+    const payslip = await Payslip.create({
       employeeId,
       month: Number(month),
       year: Number(year),
@@ -53,7 +53,7 @@ export const getPayslip = async (req, res) => {
       });
       return res.status(200).json({ data });
     } else {
-      const employee = await Employee.findOne({ userId: session.userId });
+      const employee = await Employee.findOne({ userId: session.id });
       if (!employee) {
         return res.status(404).json({ message: "Employee not found" });
       }

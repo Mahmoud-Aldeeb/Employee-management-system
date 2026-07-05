@@ -11,7 +11,7 @@ import payslipRouter from "./routes/payslipsRoutes.js";
 import dashboardRouter from "./routes/dashboardRoutes.js";
 import { serve } from "inngest/express";
 import { inngest, functions } from "./inngest/index.js";
-// import multer from "multer";
+import multer from "multer";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 4000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-// app.use(multer().none());
+app.use(multer().none());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { dummyEmployeeData, DEPARTMENTS } from "../assets/assets";
+import { useEffect, useState } from "react";
+import { DEPARTMENTS } from "../assets/assets";
 import { Plus, Search, X } from "lucide-react";
 import EmployeeCard from "../components/EmployeeCard";
 import EmployeeForm from "../components/EmployeeForm";
+import api from "../api/axios";
 
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
@@ -12,22 +13,43 @@ const Employees = () => {
   const [editEmployee, setEditEmployee] = useState(null);
   const [showCreateModel, setShowCreateModel] = useState(false);
 
-  const fetchEmployees = useCallback(() => {
-    const timer = setTimeout(() => {
-      setEmployees(
-        dummyEmployeeData.filter((emp) =>
-          selectedDept ? emp.department === selectedDept : emp,
-        ),
-      );
+  const fetchEmployees = async () => {
+    try {
+      const url = selectedDept
+        ? `/employees?department=${selectedDept}`
+        : "/employees";
+      const res = await api.get(url);
+      setEmployees(res.data);
+    } catch (error) {
+      console.error("Failed to fetch employees:" + error);
+    } finally {
       setLoading(false);
-    }, 1000);
-    return timer;
-  }, [selectedDept]);
+    }
+  };
 
   useEffect(() => {
-    const timer = fetchEmployees();
-    return () => clearTimeout(timer);
-  }, [fetchEmployees]);
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const url = selectedDept
+          ? `/employees?department=${selectedDept}`
+          : "/employees";
+        const res = await api.get(url);
+        if (!cancelled) setEmployees(res.data);
+      } catch (error) {
+        console.error("Failed to fetch employees:" + error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDept]);
 
   const filtered = employees.filter((emp) =>
     `${emp.firstName} ${emp.lastName} ${emp.position}`

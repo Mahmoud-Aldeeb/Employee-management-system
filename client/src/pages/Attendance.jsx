@@ -1,27 +1,52 @@
-import { useCallback, useEffect, useState } from "react";
-import { dummyAttendanceData } from "../assets/assets";
+import { useEffect, useState } from "react";
 import Loading from "../components/Loading";
-import CheckInButton from "../components/attendance/CheckinButton";
+import CheckInButton from "../components/attendance/CheckInButton";
 import AttendanceStats from "../components/attendance/AttendanceStats";
 import AttendanceHistory from "../components/attendance/AttendanceHistory";
+import { toast } from "react-hot-toast";
+import api from "../api/axios";
 
 const Attendance = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDeleted, setIsDeleted] = useState(false);
 
-  const fetchData = useCallback(() => {
-    const timer = setTimeout(() => {
-      setHistory(dummyAttendanceData);
+  const fetchData = async () => {
+    try {
+      const res = await api.get("/attendance");
+      const json = res.data;
+      setHistory(json.data || []);
+      if (json.employee?.isDeleted) setIsDeleted(true);
+    } catch (error) {
+      console.error("Failed to fetch attendance:" + error);
+      toast.error(error.response?.data?.error || error.message);
+    } finally {
       setLoading(false);
-    }, 1000);
-    return timer;
-  }, []);
+    }
+  };
 
   useEffect(() => {
-    const timer = fetchData();
-    return () => clearTimeout(timer);
-  }, [fetchData]);
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await api.get("/attendance");
+        const json = res.data;
+        if (!cancelled) {
+          setHistory(json.data || []);
+          if (json.employee?.isDeleted) setIsDeleted(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch leaves:" + error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   if (loading) return <Loading />;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -30,7 +55,7 @@ const Attendance = () => {
   );
   return (
     <div className="animate-fade-in">
-      <div page-header>
+      <div className="page-header">
         <h1 className="page-title">Attendance</h1>
         <p className="page-subtitle">
           Track your work hours and daily check-ins
