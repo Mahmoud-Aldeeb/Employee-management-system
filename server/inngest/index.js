@@ -30,7 +30,7 @@ const autoCheckOut = inngest.createFunction(
         body: `<div style="max-width:600px;">
           <h2>Hi ${employee.firstName},</h2>
           <P style="font-size:16px;">You have a check-in ${employee.department} today:</P>
-          <P style="font-size:18px; font-weight:bold; color:#007bff; margin:8px;">${attendance?.checkIn?.tolocaleTimeString()}</P>
+          <P style="font-size:18px; font-weight:bold; color:#007bff; margin:8px;">${attendance?.checkIn?.toLocaleTimeString()}</P>
           <P style="font-size:16px;">Please make sure to check-out in one hour.</p>
           <P style="font-size:16px;">If you have any questions, please contact your admin.</p>
           <br/>
