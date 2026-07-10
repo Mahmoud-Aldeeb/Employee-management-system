@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-// import { dummyLeaveData } from "../assets/assets";
 import Loading from "../components/Loading";
 import {
   PalmtreeIcon,
@@ -11,50 +10,24 @@ import LeaveHistory from "../components/leave/LeaveHistory";
 import ApplyLeaveModal from "../components/leave/ApplyLeaveModal";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
+import useFetch from "../hooks/useFetch";
+import usePageTitle from "../hooks/usePageTitle";
 
 const Leave = () => {
+  usePageTitle("Leave Management");
   const { user } = useAuth();
-  const [leaves, setLeaves] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [isDeleted, setIsDeleted] = useState(false);
   const isAdmin = user?.role === "ADMIN";
+  const [showModal, setShowModal] = useState(false);
 
-  const fetchLeaves = async () => {
-    try {
-      const res = await api.get("/leave");
-      setLeaves(res.data.data || []);
-      if (res.data.employee?.isDeleted) setIsDeleted(true);
-    } catch (error) {
-      console.error("Failed to fetch leaves:" + error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // useFetch handles retrieving leaves list and employee deleted status
+  const {
+    data: payload,
+    loading,
+    refetch,
+  } = useFetch(() => api.get("/leave"), []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const res = await api.get("/leave");
-        if (!cancelled) {
-          setLeaves(res.data.data || []);
-          if (res.data.employee?.isDeleted) setIsDeleted(true);
-        }
-      } catch (error) {
-        console.error("Failed to fetch leaves:" + error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const leaves = payload?.data || [];
+  const isDeleted = payload?.employee?.isDeleted || false;
 
   if (loading) return <Loading />;
 
@@ -113,11 +86,11 @@ const Leave = () => {
           ))}
         </div>
       )}
-      <LeaveHistory leaves={leaves} isAdmin={isAdmin} onUpdate={fetchLeaves} />
+      <LeaveHistory leaves={leaves} isAdmin={isAdmin} onUpdate={refetch} />
       <ApplyLeaveModal
         open={showModal}
         onClose={() => setShowModal(false)}
-        onSuccess={fetchLeaves}
+        onSuccess={refetch}
       />
     </div>
   );

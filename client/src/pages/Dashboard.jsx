@@ -1,24 +1,21 @@
-import { useEffect, useState } from "react";
-import {} from // dummyAdminDashboardData,
-// dummyEmployeeDashboardData,
-"../assets/assets";
+import { useEffect } from "react";
 import Loading from "../components/Loading";
 import EmployeeDashboard from "../components/EmployeeDashboard";
 import AdminDashboard from "../components/AdminDashboard";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
+import useFetch from "../hooks/useFetch";
+import usePageTitle from "../hooks/usePageTitle";
 
 const Dashboard = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(null);
+  usePageTitle("Dashboard");
+  const { data, loading, error } = useFetch(() => api.get("/dashboard"), []);
 
   useEffect(() => {
-    api.get("/dashboard").then((res) =>
-      setData(res.data)
-        .catch((err) => toast.error(err.response?.data?.error || err?.message))
-        .finally(() => setLoading(false)),
-    );
-  }, []);
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   if (loading) return <Loading />;
   if (!data) {

@@ -1,58 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Loading from "../components/Loading";
 import CheckInButton from "../components/attendance/CheckInButton";
 import AttendanceStats from "../components/attendance/AttendanceStats";
 import AttendanceHistory from "../components/attendance/AttendanceHistory";
 import { toast } from "react-hot-toast";
 import api from "../api/axios";
+import useFetch from "../hooks/useFetch";
+import usePageTitle from "../hooks/usePageTitle";
 
 const Attendance = () => {
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isDeleted, setIsDeleted] = useState(false);
+  usePageTitle("Attendance");
 
-  const fetchData = async () => {
-    try {
-      const res = await api.get("/attendance");
-      const json = res.data;
-      setHistory(json.data || []);
-      if (json.employee?.isDeleted) setIsDeleted(true);
-    } catch (error) {
-      console.error("Failed to fetch attendance:" + error);
-      toast.error(error.response?.data?.error || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // useFetch handles retrieving attendance record history and employee details
+  const {
+    data: payload,
+    loading,
+    error,
+    refetch,
+  } = useFetch(() => api.get("/attendance"), []);
+
+  const history = payload?.data || [];
+  const isDeleted = payload?.employee?.isDeleted || false;
 
   useEffect(() => {
-    let cancelled = false;
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
-    const load = async () => {
-      try {
-        const res = await api.get("/attendance");
-        const json = res.data;
-        if (!cancelled) {
-          setHistory(json.data || []);
-          if (json.employee?.isDeleted) setIsDeleted(true);
-        }
-      } catch (error) {
-        console.error("Failed to fetch leaves:" + error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
   if (loading) return <Loading />;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayRecord = history.find(
     (r) => new Date(r.date).toDateString() === today.toDateString(),
   );
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -70,7 +53,7 @@ const Attendance = () => {
         </div>
       ) : (
         <div className="mb-8">
-          <CheckInButton todayRecord={todayRecord} onAction={fetchData} />
+          <CheckInButton todayRecord={todayRecord} onAction={refetch} />
         </div>
       )}
 

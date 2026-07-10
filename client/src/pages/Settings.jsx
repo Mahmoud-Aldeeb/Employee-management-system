@@ -1,65 +1,42 @@
-import { useCallback, useEffect, useState } from "react";
-import { dummyProfileData } from "../assets/assets";
+import { useEffect, useState } from "react";
 import Loading from "../components/Loading";
 import { Lock } from "lucide-react";
 import ProfileForm from "../components/ProfileForm";
 import ChangePasswordModal from "../components/ChangePasswordModal";
-import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
+import useFetch from "../hooks/useFetch";
+import usePageTitle from "../hooks/usePageTitle";
+
 const Settings = () => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  usePageTitle("Settings");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const fetchProfile = async () => {
-    try {
-      const res = await api.get("/profile");
-      const profile = res.data;
-      if (profile) setProfile(profile);
-    } catch (error) {
-      console.error("Failed to fetch profile:" + error);
-      toast.error(error.response?.data?.error || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // useFetch handles profile retrieval and loading state
+  const {
+    data: profile,
+    loading,
+    error,
+    refetch,
+  } = useFetch(() => api.get("/profile"), []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const res = await api.get("/profile");
-        const profile = res.data;
-        if (!cancelled && profile) {
-          setProfile(profile);
-        }
-      } catch (error) {
-        console.error("Failed to fetch profile:" + error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   if (loading) return <Loading />;
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">Manage your account and preferences</p>
       </div>
-      {profile && (
-        <ProfileForm initialData={profile} onSuccess={fetchProfile} />
-      )}
+      {profile && <ProfileForm initialData={profile} onSuccess={refetch} />}
       {/* Change password trigger */}
-      <div className="card max-w-md p-6 flex items-center justify-between">
+      <div className="card max-w-md p-6 flex items-center justify-between mt-6">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-slate-100 rounded-lg">
             <Lock className="size-5 text-slate-600" />

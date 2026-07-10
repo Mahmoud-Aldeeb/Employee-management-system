@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { dummyProfileData } from "../assets/assets";
 import {
   CalendarHeartIcon,
   ChevronRightIcon,
@@ -126,7 +125,7 @@ const Sidebar = () => {
         </p>
       </div>
       {/* Navigation List */}
-      <div className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
         {loading ? (
           <div className="px-3 py-3 flex items-center gap-2 text-slate-500">
             <Loader2 className="size-4 animate-spin" />
@@ -153,7 +152,7 @@ const Sidebar = () => {
             );
           })
         )}
-      </div>
+      </nav>
 
       {/* Logout */}
       <div className="p-3 border-t border-white/6">

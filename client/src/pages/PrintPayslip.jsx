@@ -1,24 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Loading from "../components/Loading";
 import { format } from "date-fns";
 import api from "../api/axios";
+import { toast } from "react-hot-toast";
+import useFetch from "../hooks/useFetch";
+import usePageTitle from "../hooks/usePageTitle";
 
 const PrintPayslip = () => {
   const { id } = useParams();
-  const [payslip, setPaySlip] = useState(null);
-  const [loading, setLoading] = useState(true);
+  usePageTitle(`Payslip #${id}`);
+
+  // useFetch handles retrieving specific payslip details
+  const {
+    data: payslip,
+    loading,
+    error,
+  } = useFetch(() => api.get(`/payslips/${id}`), [id]);
 
   useEffect(() => {
-    api
-      .get(`/payslips/${id}`)
-      .then((res) => setPaySlip(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   if (loading) return <Loading />;
-  if (!payslip) return <p>Payslip not found</p>;
+  if (!payslip)
+    return (
+      <p className="text-center py-12 text-slate-500">Payslip not found</p>
+    );
 
   return (
     <div className=" max-w-2xl mx-auto p-8 bg-white animate-fade-in">

@@ -1,73 +1,45 @@
-import { useEffect, useMemo, useState } from "react";
-import { dummyEmployeeData, dummyPayslipData } from "../assets/assets";
+import { useMemo, useEffect } from "react";
 import Loading from "../components/Loading";
 import PayslipList from "../components/payslip/PayslipList";
 import GeneratePayslipForm from "../components/payslip/GeneratePayslipForm";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
-const Payslips = () => {
-  const [payslips, setPayslips] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+import useFetch from "../hooks/useFetch";
+import usePageTitle from "../hooks/usePageTitle";
 
+const Payslips = () => {
+  usePageTitle("Payslips");
+  const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
 
-  const fetchPayslips = async () => {
-    try {
-      const res = await api.get("/payslips");
-      setPayslips(res.data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch payslips:", error);
-      toast.error(error.response?.data?.error || error.message);
-    } finally {
-      setLoading(false);
+  // useFetch handles retrieving payslips record list
+  const {
+    data: payload,
+    loading,
+    error,
+    refetch: fetchPayslips,
+  } = useFetch(() => api.get("/payslips"), []);
+
+  const payslips = payload?.data || [];
+
+  // useFetch fetches employees for admin to populate creation form
+  const { data: rawEmployees = [] } = useFetch(
+    () => (isAdmin ? api.get("/employees") : Promise.resolve({ data: [] })),
+    [isAdmin],
+  );
+
+  // useMemo caches active non-deleted employee records list
+  const employees = useMemo(() => {
+    const list = Array.isArray(rawEmployees) ? rawEmployees : [];
+    return list.filter((e) => !e.isDeleted);
+  }, [rawEmployees]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
     }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const res = await api.get("/payslips");
-        if (!cancelled) {
-          setPayslips(res.data.data || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch payslips:", error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    let cancelled = false;
-
-    const loadEmployees = async () => {
-      try {
-        const res = await api.get("/employees");
-        if (!cancelled) {
-          setEmployees(res.data.filter((e) => !e.isDeleted));
-        }
-      } catch (error) {
-        console.error("Failed to fetch employees:", error);
-      }
-    };
-    loadEmployees();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdmin]);
+  }, [error]);
 
   if (loading) return <Loading />;
 

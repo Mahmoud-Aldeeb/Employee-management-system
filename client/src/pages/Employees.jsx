@@ -1,61 +1,46 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { DEPARTMENTS } from "../assets/assets";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import EmployeeCard from "../components/EmployeeCard";
 import EmployeeForm from "../components/EmployeeForm";
 import api from "../api/axios";
+import useFetch from "../hooks/useFetch";
+import useDebounce from "../hooks/useDebounce";
+import usePageTitle from "../hooks/usePageTitle";
+import Modal from "../components/ui/Modal";
 
 const Employees = () => {
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  usePageTitle("Employees");
+
   const [search, setSearch] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [editEmployee, setEditEmployee] = useState(null);
   const [showCreateModel, setShowCreateModel] = useState(false);
 
-  const fetchEmployees = async () => {
-    try {
-      const url = selectedDept
-        ? `/employees?department=${selectedDept}`
-        : "/employees";
-      const res = await api.get(url);
-      setEmployees(res.data);
-    } catch (error) {
-      console.error("Failed to fetch employees:" + error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const url = selectedDept
-          ? `/employees?department=${selectedDept}`
-          : "/employees";
-        const res = await api.get(url);
-        if (!cancelled) setEmployees(res.data);
-      } catch (error) {
-        console.error("Failed to fetch employees:" + error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
+  // useFetch handles loading state and axios request execution
+  const {
+    data: employees = [],
+    loading,
+    refetch,
+  } = useFetch(() => {
+    const url = selectedDept
+      ? `/employees?department=${selectedDept}`
+      : "/employees";
+    return api.get(url);
   }, [selectedDept]);
 
-  const filtered = employees.filter((emp) =>
-    `${emp.firstName} ${emp.lastName} ${emp.position}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
+  // useDebounce delays search query execution for better performance
+  const debouncedSearch = useDebounce(search, 400);
+
+  // useMemo caches filtered results to optimize render times
+  const filtered = useMemo(() => {
+    const list = Array.isArray(employees) ? employees : [];
+    return list.filter((emp) =>
+      `${emp.firstName} ${emp.lastName} ${emp.position}`
+        .toLowerCase()
+        .includes(debouncedSearch.toLowerCase()),
+    );
+  }, [employees, debouncedSearch]);
 
   return (
     <div className="animate-fade-in">
@@ -72,6 +57,7 @@ const Employees = () => {
           <Plus size={16} /> Add Employee
         </button>
       </div>
+
       {/* ----- search bar ----- */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
@@ -97,6 +83,7 @@ const Employees = () => {
           ))}
         </select>
       </div>
+
       {/* ------ employee cards ------ */}
       {loading ? (
         <div className="flex justify-center p-12">
@@ -111,94 +98,48 @@ const Employees = () => {
           ) : (
             filtered.map((emp) => (
               <EmployeeCard
-                key={emp.id}
+                key={emp._id || emp.id}
                 employee={emp}
-                onDelete={fetchEmployees}
+                onDelete={refetch}
                 onEdit={(e) => setEditEmployee(e)}
               />
             ))
           )}
         </div>
       )}
-      {/* Create Employee Model */}
-      {showCreateModel && (
-        <div
-          className="fixed bg-black/40 backdrop-blur-sm inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
-          onClick={() => setShowCreateModel(false)}
-        >
-          <div className="fixed inset-0" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-6 pb-0">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Add New Employee
-                </h2>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  Create a user account and employee profile
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModel(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6">
-              <EmployeeForm
-                onSuccess={() => {
-                  setShowCreateModel(false);
-                  fetchEmployees();
-                }}
-                onCancel={() => setShowCreateModel(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Edit Employee Model */}
-      {editEmployee && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/40 backdrop-blur-sm"
-          onClick={() => setEditEmployee(null)}
-        >
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-6 pb-0">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Edit Employee
-                </h2>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  Update employee details
-                </p>
-              </div>
-              <button
-                onClick={() => setEditEmployee(null)}
-                className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6">
-              <EmployeeForm
-                initialData={editEmployee}
-                onSuccess={() => {
-                  setEditEmployee(null);
-                  fetchEmployees();
-                }}
-                onCancel={() => setEditEmployee(null)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Employee Modal */}
+      <Modal
+        open={showCreateModel}
+        onClose={() => setShowCreateModel(false)}
+        title="Add New Employee"
+        subtitle="Create a user account and employee profile"
+      >
+        <EmployeeForm
+          onSuccess={() => {
+            setShowCreateModel(false);
+            refetch();
+          }}
+          onCancel={() => setShowCreateModel(false)}
+        />
+      </Modal>
+
+      {/* Edit Employee Modal */}
+      <Modal
+        open={!!editEmployee}
+        onClose={() => setEditEmployee(null)}
+        title="Edit Employee"
+        subtitle="Update employee details"
+      >
+        <EmployeeForm
+          initialData={editEmployee}
+          onSuccess={() => {
+            setEditEmployee(null);
+            refetch();
+          }}
+          onCancel={() => setEditEmployee(null)}
+        />
+      </Modal>
     </div>
   );
 };
