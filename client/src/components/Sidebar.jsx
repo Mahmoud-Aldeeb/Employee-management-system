@@ -40,17 +40,26 @@ const Sidebar = () => {
       href: "/dashboard",
       icon: LayoutGridIcon,
     },
-    role === "ADMIN"
-      ? {
-          name: "ُEmployees",
-          href: "/employees",
-          icon: UserIcon,
-        }
-      : {
-          name: "Attendance",
-          href: "/attendance",
-          icon: CalendarHeartIcon,
-        },
+    ...(role === "ADMIN"
+      ? [
+          {
+            name: "Employees",
+            href: "/employees",
+            icon: UserIcon,
+          },
+          {
+            name: "Analytics",
+            href: "/analytics",
+            icon: FileSignalIcon,
+          },
+        ]
+      : [
+          {
+            name: "Attendance",
+            href: "/attendance",
+            icon: CalendarHeartIcon,
+          },
+        ]),
     {
       name: "Leave",
       href: "/leave",

@@ -5,8 +5,10 @@ import GeneratePayslipForm from "../components/payslip/GeneratePayslipForm";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
+import { Download } from "lucide-react";
 import useFetch from "../hooks/useFetch";
 import usePageTitle from "../hooks/usePageTitle";
+import { exportToCSV } from "../utils/export";
 
 const Payslips = () => {
   usePageTitle("Payslips");
@@ -26,7 +28,7 @@ const Payslips = () => {
   // useFetch fetches employees for admin to populate creation form
   const { data: rawEmployees = [] } = useFetch(
     () => (isAdmin ? api.get("/employees") : Promise.resolve({ data: [] })),
-    [isAdmin],
+    [isAdmin]
   );
 
   // useMemo caches active non-deleted employee records list
@@ -43,6 +45,19 @@ const Payslips = () => {
 
   if (loading) return <Loading />;
 
+  const handleExport = () => {
+    exportToCSV(payslips, "payslips_report", [
+      { label: "Employee First Name", key: "employee.firstName" },
+      { label: "Employee Last Name", key: "employee.lastName" },
+      { label: "Month", key: "month" },
+      { label: "Year", key: "year" },
+      { label: "Basic Salary", key: "basicSalary" },
+      { label: "Allowances", key: "allowances" },
+      { label: "Deductions", key: "deductions" },
+      { label: "Net Salary", key: "netSalary" },
+    ]);
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -54,12 +69,20 @@ const Payslips = () => {
               : "Your payslip history"}
           </p>
         </div>
-        {isAdmin && (
-          <GeneratePayslipForm
-            employees={employees}
-            onSuccess={fetchPayslips}
-          />
-        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExport}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+          {isAdmin && (
+            <GeneratePayslipForm
+              employees={employees}
+              onSuccess={fetchPayslips}
+            />
+          )}
+        </div>
       </div>
       <PayslipList payslips={payslips} isAdmin={isAdmin} />
     </div>

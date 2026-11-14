@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { DEPARTMENTS } from "../assets/assets";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import EmployeeCard from "../components/EmployeeCard";
 import EmployeeForm from "../components/EmployeeForm";
 import api from "../api/axios";
@@ -8,6 +8,7 @@ import useFetch from "../hooks/useFetch";
 import useDebounce from "../hooks/useDebounce";
 import usePageTitle from "../hooks/usePageTitle";
 import Modal from "../components/ui/Modal";
+import { exportToCSV } from "../utils/export";
 
 const Employees = () => {
   usePageTitle("Employees");
@@ -42,6 +43,19 @@ const Employees = () => {
     );
   }, [employees, debouncedSearch]);
 
+  const handleExport = () => {
+    exportToCSV(filtered, "employees_report", [
+      { label: "First Name", key: "firstName" },
+      { label: "Last Name", key: "lastName" },
+      { label: "Email", key: "email" },
+      { label: "Phone", key: "phone" },
+      { label: "Position", key: "position" },
+      { label: "Department", key: "department" },
+      { label: "Status", key: "employmentStatus" },
+      { label: "Basic Salary", key: "basicSalary" },
+    ]);
+  };
+
   return (
     <div className="animate-fade-in">
       {/* ----- header ----- */}
@@ -50,12 +64,20 @@ const Employees = () => {
           <h1 className="page-title">Employees</h1>
           <p className="page-subtitle">Manage your team members</p>
         </div>
-        <button
-          onClick={() => setShowCreateModel(true)}
-          className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
-        >
-          <Plus size={16} /> Add Employee
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={handleExport}
+            className="btn-secondary flex items-center gap-2 justify-center"
+          >
+            <Download size={16} /> Export CSV
+          </button>
+          <button
+            onClick={() => setShowCreateModel(true)}
+            className="btn-primary flex items-center gap-2 justify-center"
+          >
+            <Plus size={16} /> Add Employee
+          </button>
+        </div>
       </div>
 
       {/* ----- search bar ----- */}

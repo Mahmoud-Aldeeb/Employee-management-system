@@ -14,6 +14,7 @@ const Leave = lazy(() => import("./pages/Leave"));
 const Payslips = lazy(() => import("./pages/Payslips"));
 const Settings = lazy(() => import("./pages/Settings"));
 const PrintPayslip = lazy(() => import("./pages/PrintPayslip"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 
 const App = () => {
   return (
@@ -51,9 +52,11 @@ const App = () => {
               <Route path="/leave" element={<Leave />} />
               <Route path="/payslips" element={<Payslips />} />
               <Route path="/settings" element={<Settings />} />
+
               {/* Admin only routes */}
               <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
                 <Route path="/employees" element={<Employees />} />
+                <Route path="/analytics" element={<Analytics />} />
               </Route>
             </Route>
 
