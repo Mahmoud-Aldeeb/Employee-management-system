@@ -24,7 +24,7 @@ export const clockInOut = async (req, res) => {
     });
     const now = new Date();
     if (!existing) {
-      const isLate = now.getHours() >= 9 && now.getMinutes() > 0; // Assuming 9:00 AM is the late threshold
+      const isLate = now.getHours() * 60 + now.getMinutes() > 9 * 60; // Assuming 9:00 AM is the late threshold
       // const attendance = await Attendance({
       //   employeeId: employee._id,
       //   date: today,
@@ -52,7 +52,7 @@ export const clockInOut = async (req, res) => {
       // const diffMs = now.getTime() - checkInTime;
       // const diffHours = Math.floor(diffMs / 3600000); // hours
       const diffMs = now.getTime() - new Date(existing.checkIn).getTime();
-      const diffHours = Math.floor(diffMs / 3600000);
+      const diffHours = diffMs / 3600000;
       existing.checkOut = now;
       // Compute working hours and day type
       const workingHours = parseFloat(diffHours.toFixed(2));

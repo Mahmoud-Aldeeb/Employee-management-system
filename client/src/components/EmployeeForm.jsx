@@ -147,7 +147,7 @@ const EmployeeForm = ({ initialData, onSuccess, onCancel }) => {
             </label>
             <input
               id="basicSalary"
-              type="text"
+              type="number"
               name="basicSalary"
               required
               min="0"
@@ -180,14 +180,14 @@ const EmployeeForm = ({ initialData, onSuccess, onCancel }) => {
           </div>
           {isEditMode && (
             <div>
-              <label htmlFor="state" className="block mb-2">
+              <label htmlFor="employmentStatus" className="block mb-2">
                 State
               </label>
               <select
-                id="state"
-                name="state"
+                id="employmentStatus"
+                name="employmentStatus"
                 required
-                defaultValue={initialData?.employmentStatus || 0}
+                defaultValue={initialData?.employmentStatus || "ACTIVE"}
               >
                 <option value="ACTIVE">Active</option>
                 <option value="INACTIVE">Inactive</option>
@@ -231,7 +231,7 @@ const EmployeeForm = ({ initialData, onSuccess, onCancel }) => {
               <input
                 id="changePassword"
                 type="password"
-                name="changePassword"
+                name="password"
                 placeholder="Leave blank to keep current"
               />
             </div>

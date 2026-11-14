@@ -25,9 +25,7 @@ export const getEmployees = async (req, res) => {
     }));
     return res.json(result);
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: error.message && "Failed to fetch employees" });
+    return res.status(500).json({ error: "Failed to fetch employees" });
   }
 };
 
@@ -81,9 +79,7 @@ export const createEmployee = async (req, res) => {
       return res.status(400).json({ error: "Email already exists" });
     }
     console.error("Create Employee Error:", error);
-    return res
-      .status(500)
-      .json({ error: error.message && "Failed to create employee" });
+    return res.status(500).json({ error: "Failed to create employee" });
   }
 };
 
@@ -141,9 +137,7 @@ export const updateEmployee = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ error: "Email already exists" });
     }
-    return res
-      .status(500)
-      .json({ error: error.message && "Failed to update employee" });
+    return res.status(500).json({ error: "Failed to update employee" });
   }
 };
 
@@ -161,8 +155,6 @@ export const deleteEmployee = async (req, res) => {
     await employee.save();
     return res.status(200).json({ success: true });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: error.message && "Failed to delete employee" });
+    return res.status(500).json({ error: "Failed to delete employee" });
   }
 };
