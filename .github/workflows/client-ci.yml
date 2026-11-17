@@ -1,0 +1,48 @@
+name: Client CI
+
+on:
+  push:
+    branches: [master, "refactor/**"]
+    paths:
+      - "client/**"
+      - ".github/workflows/client-ci.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "client/**"
+      - ".github/workflows/client-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: client
+    env:
+      VITE_BASE_URL: http://localhost:4000/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npx vitest run
+
+      - run: npm run build
