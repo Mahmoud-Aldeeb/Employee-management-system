@@ -1,14 +1,18 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+
+const helmetMiddleware =
+  (helmet as unknown as { default?: () => RequestHandler }).default ??
+  (helmet as unknown as () => RequestHandler);
 
 export function configureApp(app: INestApplication) {
   const config = app.get(ConfigService);
 
-  app.use(helmet());
+  app.use(helmetMiddleware());
   app.use(cookieParser());
   app.use(express.json());
   app.enableCors({
