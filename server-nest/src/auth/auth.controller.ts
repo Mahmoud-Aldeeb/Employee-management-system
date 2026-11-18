@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ACCESS_TTL_S, AuthService, REFRESH_TTL_S } from './auth.service.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
@@ -27,7 +26,6 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -97,7 +95,7 @@ export class AuthController {
       ...this.baseCookieOptions,
       maxAge: REFRESH_TTL_S * 1000,
     });
-    
+
     res.cookie('refresh_token', refreshToken, {
       ...this.baseCookieOptions,
       path: '/api/auth',

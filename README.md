@@ -5,7 +5,7 @@
 
 An HR portal for managing employees, attendance, leave requests and payslips, with separate Admin and Employee experiences.
 
-Live demo: [<web URL>](https://employee-management-system-rust-seven.vercel.app/login) 
+Live demo: [<web URL>](https://employee-management-system-rust-seven.vercel.app/login)
 
 ## Features
 
@@ -19,14 +19,14 @@ Live demo: [<web URL>](https://employee-management-system-rust-seven.vercel.app/
 
 ## Tech stack
 
-| Area | Technology |
-| --- | --- |
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, TanStack Query, React Hook Form + Zod, Recharts |
-| Backend | NestJS, TypeScript, Mongoose / MongoDB, Passport JWT, class-validator, Helmet, Throttler |
-| Auth | httpOnly cookies: short-lived access token + rotating refresh token |
-| Jobs / email | Inngest, Nodemailer |
-| Testing | Vitest + Testing Library + MSW, Supertest API tests, Playwright (desktop and mobile) |
-| CI/CD | GitHub Actions, Vercel |
+| Area         | Technology                                                                                                      |
+| ------------ | --------------------------------------------------------------------------------------------------------------- |
+| Frontend     | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, TanStack Query, React Hook Form + Zod, Recharts |
+| Backend      | NestJS, TypeScript, Mongoose / MongoDB, Passport JWT, class-validator, Helmet, express-rate-limit               |
+| Auth         | httpOnly cookies: short-lived access token + rotating refresh token                                             |
+| Jobs / email | Inngest, Nodemailer                                                                                             |
+| Testing      | Vitest + Testing Library + MSW, Supertest API tests, Playwright (desktop and mobile)                            |
+| CI/CD        | GitHub Actions, Vercel                                                                                          |
 
 ## Architecture
 
@@ -70,15 +70,15 @@ Open http://localhost:3000.
 
 ### Environment variables
 
-| App | Variable | Purpose |
-| --- | --- | --- |
-| server-nest | `MONGODB_URL` | MongoDB connection string |
-| server-nest | `JWT_SECRET`, `JWT_REFRESH_SECRET` | Token signing secrets (32+ characters) |
-| server-nest | `CLIENT_URL` | Frontend origin |
-| server-nest | `SMTP_*`, `SENDER_EMAIL`, `ADMIN_EMAIL` | Email delivery |
-| server-nest | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Used by the seed script |
-| server-nest | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | Background jobs |
-| web | `API_URL` | NestJS API origin used by the `/api` rewrite |
+| App         | Variable                                   | Purpose                                      |
+| ----------- | ------------------------------------------ | -------------------------------------------- |
+| server-nest | `MONGODB_URL`                              | MongoDB connection string                    |
+| server-nest | `JWT_SECRET`, `JWT_REFRESH_SECRET`         | Token signing secrets (32+ characters)       |
+| server-nest | `CLIENT_URL`                               | Frontend origin                              |
+| server-nest | `SMTP_*`, `SENDER_EMAIL`, `ADMIN_EMAIL`    | Email delivery                               |
+| server-nest | `ADMIN_EMAIL`, `ADMIN_PASSWORD`            | Used by the seed script                      |
+| server-nest | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | Background jobs                              |
+| web         | `API_URL`                                  | NestJS API origin used by the `/api` rewrite |
 
 ## Testing
 

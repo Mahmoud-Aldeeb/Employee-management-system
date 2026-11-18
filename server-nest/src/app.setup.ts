@@ -1,20 +1,22 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
-import express, { type RequestHandler } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
-
-const helmetMiddleware =
-  (helmet as unknown as { default?: () => RequestHandler }).default ??
-  (helmet as unknown as () => RequestHandler);
+import { createLoginRateLimiter } from './common/rate-limit/login-rate-limiter.js';
 
 export function configureApp(app: INestApplication) {
   const config = app.get(ConfigService);
+  const httpServer = app.getHttpAdapter().getInstance() as {
+    set: (setting: string, value: unknown) => void;
+  };
 
-  app.use(helmetMiddleware());
+  httpServer.set('trust proxy', 1);
+  app.use(helmet());
   app.use(cookieParser());
   app.use(express.json());
+  app.use('/api/auth/login', createLoginRateLimiter());
   app.enableCors({
     origin: config.getOrThrow<string>('CLIENT_URL'),
     credentials: true,
