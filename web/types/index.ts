@@ -87,9 +87,10 @@ export interface AdminDashboardData {
 
 export interface EmployeeDashboardData {
   role: "EMPLOYEE";
-  employee: Employee;
+  employee: EmployeeSummary;
   currentMonthAttendance: number;
   pendingLeaves: number;
+  salary: SalarySummary;
   latestPayslip: Payslip | null;
 }
 
@@ -122,3 +123,16 @@ export interface AnalyticsData {
     attendanceRate: number;
   };
 }
+
+export interface SalarySummary {
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  netSalary: number;
+  updatedAt: string | null;
+}
+
+export type EmployeeSummary = Omit<
+  Employee,
+  "basicSalary" | "allowances" | "deductions"
+>;

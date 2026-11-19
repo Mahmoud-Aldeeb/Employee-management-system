@@ -9,6 +9,12 @@ import bcrypt from 'bcrypt';
 import type { Connection, Model } from 'mongoose';
 import { EmploymentStatus } from '../common/enums/employment-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
+import {
+  SalariesService,
+  toSalaryView,
+  type SalaryAmounts,
+} from '../salaries/salaries.service.js';
+import { SessionsService } from '../sessions/sessions.service.js';
 import { UsersService } from '../users/users.service.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
@@ -25,6 +31,8 @@ export class EmployeesService {
     @InjectModel(Employee.name) private readonly employeeModel: Model<Employee>,
     @InjectConnection() private readonly connection: Connection,
     private readonly users: UsersService,
+    private readonly salaries: SalariesService,
+    private readonly sessions: SessionsService,
   ) {}
 
   async findAll(department?: string) {
@@ -36,18 +44,30 @@ export class EmployeesService {
       .lean()
       .exec();
 
-    return employees.map((employee) => ({
-      ...employee,
-      id: String(employee._id),
-      user: employee.userId
-        ? { email: employee.userId.email, role: employee.userId.role }
-        : null,
-    }));
+    const salaries = await this.salaries.mapForEmployees(
+      employees.map((employee) => employee._id),
+    );
+
+    return employees.map((employee) => {
+      const salary = salaries.get(String(employee._id)) ?? toSalaryView(null);
+
+      return {
+        ...employee,
+        id: String(employee._id),
+        basicSalary: salary.basicSalary,
+        allowances: salary.allowances,
+        deductions: salary.deductions,
+        user: employee.userId
+          ? { email: employee.userId.email, role: employee.userId.role }
+          : null,
+      };
+    });
   }
 
   findByUserId(userId: string) {
     return this.employeeModel.findOne({ userId }).exec();
   }
+
   findById(id: string) {
     return this.employeeModel.findById(id).exec();
   }
@@ -77,14 +97,20 @@ export class EmployeesService {
               phone: dto.phone,
               position: dto.position,
               department: dto.department ?? 'Engineering',
-              basicSalary: dto.basicSalary ?? 0,
-              allowances: dto.allowances ?? 0,
-              deductions: dto.deductions ?? 0,
               joinDate: new Date(dto.joinDate),
               bio: dto.bio ?? '',
             },
           ],
           { session },
+        );
+        await this.salaries.upsert(
+          created._id,
+          {
+            basicSalary: dto.basicSalary ?? 0,
+            allowances: dto.allowances ?? 0,
+            deductions: dto.deductions ?? 0,
+          },
+          session,
         );
         employee = created;
       });
@@ -101,17 +127,29 @@ export class EmployeesService {
     const employee = await this.employeeModel.findById(id).exec();
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const { password, role, joinDate, ...fields } = dto;
+    const {
+      password,
+      role,
+      joinDate,
+      basicSalary,
+      allowances,
+      deductions,
+      ...fields
+    } = dto;
     const employeeChanges = {
       ...fields,
       ...(joinDate ? { joinDate: new Date(joinDate) } : {}),
+    };
+    const salaryChanges: Partial<SalaryAmounts> = {
+      ...(basicSalary !== undefined ? { basicSalary } : {}),
+      ...(allowances !== undefined ? { allowances } : {}),
+      ...(deductions !== undefined ? { deductions } : {}),
     };
 
     const userChanges: Parameters<UsersService['updateById']>[1] = {};
     if (dto.email) userChanges.email = dto.email;
     if (role) userChanges.role = role;
     if (password) userChanges.password = await bcrypt.hash(password, 10);
-    if (role || password) userChanges.refreshTokenHash = null;
 
     const session = await this.connection.startSession();
     try {
@@ -119,6 +157,9 @@ export class EmployeesService {
         await this.employeeModel
           .updateOne({ _id: id }, employeeChanges, { session })
           .exec();
+        if (Object.keys(salaryChanges).length > 0) {
+          await this.salaries.upsert(employee._id, salaryChanges, session);
+        }
         if (Object.keys(userChanges).length > 0) {
           await this.users.updateById(
             employee.userId.toString(),
@@ -131,6 +172,10 @@ export class EmployeesService {
       throw this.mapError(error);
     } finally {
       await session.endSession();
+    }
+
+    if (role || password) {
+      await this.sessions.revokeAllForUser(employee.userId.toString());
     }
 
     return { success: true };

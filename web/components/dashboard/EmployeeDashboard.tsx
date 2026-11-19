@@ -8,7 +8,7 @@ import {
 import Link from 'next/link';
 import type { EmployeeDashboardData } from '@/types';
 import { formatMoney } from '@/lib/format';
-
+import SalaryBreakdown from '@/components/salary/SalaryBreakdown';
 interface Card {
   icon: LucideIcon;
   value: string | number;
@@ -51,6 +51,7 @@ export default function EmployeeDashboard({ data }: { data: EmployeeDashboardDat
           </div>
         ))}
       </div>
+      <SalaryBreakdown salary={data.salary} className="mb-8 max-w-xl" />
       <div className="flex flex-col sm:flex-row gap-3">
         <Link
           href="/attendance"

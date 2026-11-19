@@ -12,6 +12,13 @@ const sara = {
   position: 'Designer',
   department: 'Design',
 };
+const salary = {
+  basicSalary: 5000,
+  allowances: 500,
+  deductions: 200,
+  netSalary: 5300,
+  updatedAt: null,
+};
 
 describe('DashboardView', () => {
   it('shows the admin overview numbers', async () => {
@@ -23,6 +30,7 @@ describe('DashboardView', () => {
           totalDepartments: 10,
           todayAttendance: 7,
           pendingLeaves: 3,
+          salary,
         }),
       ),
     );
@@ -41,6 +49,7 @@ describe('DashboardView', () => {
           role: 'EMPLOYEE',
           employee: sara,
           currentMonthAttendance: 18,
+          salary,
           pendingLeaves: 1,
           latestPayslip: null,
         }),
@@ -52,6 +61,7 @@ describe('DashboardView', () => {
     expect(screen.getByText('Designer - Design')).toBeInTheDocument();
     expect(screen.getByText('18')).toBeInTheDocument();
     expect(screen.getByText('N/A')).toBeInTheDocument();
+    expect(screen.getByText('$5,300')).toBeInTheDocument();
   });
 
   it('formats the latest payslip amount', async () => {
@@ -61,6 +71,7 @@ describe('DashboardView', () => {
           role: 'EMPLOYEE',
           employee: sara,
           currentMonthAttendance: 20,
+          salary,
           pendingLeaves: 0,
           latestPayslip: { _id: 'p1', netSalary: 2180 },
         }),

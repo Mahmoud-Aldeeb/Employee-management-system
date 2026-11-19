@@ -10,6 +10,7 @@ import { cairoDay, cairoMonthRange } from '../common/utils/cairo-time.js';
 import { Employee } from '../employees/schemas/employee.schema.js';
 import { LeaveApplication } from '../leave/schemas/leave-application.schema.js';
 import { Payslip } from '../payslips/schemas/payslip.schema.js';
+import { SalariesService } from '../salaries/salaries.service.js';
 
 @Injectable()
 export class DashboardService {
@@ -20,6 +21,7 @@ export class DashboardService {
     @InjectModel(LeaveApplication.name)
     private readonly leaveModel: Model<LeaveApplication>,
     @InjectModel(Payslip.name) private readonly payslipModel: Model<Payslip>,
+    private readonly salaries: SalariesService,
   ) {}
 
   getDashboard(user: JwtPayload) {
@@ -49,7 +51,7 @@ export class DashboardService {
     if (!employee) throw new NotFoundException('Employee not found');
 
     const { start, end } = cairoMonthRange();
-    const [currentMonthAttendance, pendingLeaves, latestPayslip] =
+    const [currentMonthAttendance, pendingLeaves, latestPayslip, salary] =
       await Promise.all([
         this.attendanceModel.countDocuments({
           employeeId: employee._id,
@@ -64,6 +66,7 @@ export class DashboardService {
           .sort({ createdAt: -1 })
           .lean()
           .exec(),
+        this.salaries.getForEmployee(employee._id),
       ]);
 
     return {
@@ -74,6 +77,7 @@ export class DashboardService {
       latestPayslip: latestPayslip
         ? { ...latestPayslip, id: String(latestPayslip._id) }
         : null,
+      salary,
     };
   }
 }

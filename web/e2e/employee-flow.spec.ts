@@ -157,6 +157,21 @@ test("sara opens her payslip and omar cannot see it", async () => {
   await expect(other.getByText("No payslips found")).toBeVisible();
 });
 
+test("the admin raises the salary and sara sees it on her dashboard", async () => {
+  const { page } = admin;
+  await page.goto("/employees");
+  await page.getByRole("button", { name: "Edit Sara Ali" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Edit Employee" });
+  await dialog.getByLabel("Basic Salary").fill("6000");
+  await dialog.getByRole("button", { name: "Update Employee" }).click();
+  await expect(dialog).toBeHidden();
+
+  await saraSession.page.goto("/dashboard");
+  await expect(saraSession.page.getByText("Current Salary")).toBeVisible();
+  await expect(saraSession.page.getByText("$6,300")).toBeVisible();
+});
+
 test("settings: sara updates her bio", async () => {
   const { page } = saraSession;
   await page.goto("/settings");

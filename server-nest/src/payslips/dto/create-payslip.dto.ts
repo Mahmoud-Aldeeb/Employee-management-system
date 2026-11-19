@@ -27,7 +27,8 @@ export class CreatePayslipDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  basicSalary!: number;
+  @IsOptional()
+  basicSalary?: number;
 
   @IsOptional()
   @Type(() => Number)

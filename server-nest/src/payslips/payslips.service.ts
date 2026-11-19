@@ -12,6 +12,7 @@ import { EmployeesService } from '../employees/employees.service.js';
 import type { Employee } from '../employees/schemas/employee.schema.js';
 import { CreatePayslipDto } from './dto/create-payslip.dto.js';
 import { Payslip } from './schemas/payslip.schema.js';
+import { SalariesService } from '../salaries/salaries.service.js';
 
 type PopulatedEmployee = Employee & { _id: unknown };
 
@@ -20,24 +21,27 @@ export class PayslipsService {
   constructor(
     @InjectModel(Payslip.name) private readonly payslipModel: Model<Payslip>,
     private readonly employees: EmployeesService,
+    private readonly salaries: SalariesService,
   ) {}
 
   async create(dto: CreatePayslipDto) {
     const employee = await this.employees.findById(dto.employeeId);
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const allowances = dto.allowances ?? 0;
-    const deductions = dto.deductions ?? 0;
+    const salary = await this.salaries.getForEmployee(employee._id);
+    const basicSalary = dto.basicSalary ?? salary.basicSalary;
+    const allowances = dto.allowances ?? salary.allowances ?? 0;
+    const deductions = dto.deductions ?? salary.deductions ?? 0;
 
     try {
       const payslip = await this.payslipModel.create({
         employeeId: employee._id,
         month: dto.month,
         year: dto.year,
-        basicSalary: dto.basicSalary,
+        basicSalary,
         allowances,
         deductions,
-        netSalary: dto.basicSalary + allowances - deductions,
+        netSalary: basicSalary + allowances - deductions,
       });
       return { success: true, data: payslip };
     } catch (error) {

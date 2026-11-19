@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { Role } from '../common/enums/role.enum.js';
+import { SessionsService } from '../sessions/sessions.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -18,18 +19,24 @@ import type { JwtPayload } from './strategies/jwt.strategy.js';
 export const ACCESS_TTL_S = 15 * 60;
 export const REFRESH_TTL_S = 7 * 24 * 60 * 60;
 
+interface RefreshPayload extends JwtPayload {
+  sid: string;
+}
+
 const sha256 = (value: string) =>
   createHash('sha256').update(value).digest('hex');
+const refreshExpiry = () => new Date(Date.now() + REFRESH_TTL_S * 1000);
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly users: UsersService,
+    private readonly sessions: SessionsService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, userAgent?: string) {
     const user = await this.users.findByEmailWithPassword(dto.email);
     const valid = user
       ? await bcrypt.compare(dto.password, user.password)
@@ -43,78 +50,119 @@ export class AuthService {
     if (dto.role_type === 'employee' && user.role !== Role.EMPLOYEE) {
       throw new ForbiddenException('Not authorized as employee');
     }
-    return this.issueTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    return this.startSession(
+      { id: user.id, email: user.email, role: user.role },
+      userAgent,
+    );
   }
 
   async refresh(refreshToken?: string) {
     if (!refreshToken) throw new UnauthorizedException();
-    let payload: JwtPayload;
-    try {
-      payload = await this.jwt.verifyAsync<JwtPayload>(refreshToken, {
-        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      });
-    } catch {
-      throw new UnauthorizedException();
-    }
-    const user = await this.users.findByIdWithRefreshHash(payload.id);
+
+    const payload = await this.verifyRefreshToken(refreshToken);
+    const session = await this.sessions.findActive(payload.sid);
+    const currentHash = sha256(refreshToken);
     if (
-      !user?.refreshTokenHash ||
-      user.refreshTokenHash !== sha256(refreshToken)
+      !session ||
+      String(session.userId) !== payload.id ||
+      session.tokenHash !== currentHash
     ) {
       throw new UnauthorizedException();
     }
-    return this.issueTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+
+    const user = await this.users.findById(payload.id);
+    if (!user) throw new UnauthorizedException();
+
+    const identity = { id: user.id, email: user.email, role: user.role };
+    const tokens = await this.signTokens(identity, payload.sid);
+    const rotated = await this.sessions.rotate(
+      payload.sid,
+      currentHash,
+      sha256(tokens.refreshToken),
+      refreshExpiry(),
+    );
+    if (!rotated) throw new UnauthorizedException();
+
+    return { ...tokens, payload: identity };
   }
 
   async logout(refreshToken?: string) {
     if (!refreshToken) return;
     try {
-      const payload = await this.jwt.verifyAsync<JwtPayload>(refreshToken, {
+      const payload = await this.jwt.verifyAsync<RefreshPayload>(refreshToken, {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+        ignoreExpiration: true,
       });
-      await this.users.setRefreshTokenHash(payload.id, null);
+      if (typeof payload.sid === 'string')
+        await this.sessions.revoke(payload.sid);
     } catch {
-      // invalid or expired token: nothing to revoke
+      return;
     }
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    userAgent?: string,
+  ) {
     const user = await this.users.findByIdWithPassword(userId);
     if (!user) throw new NotFoundException('User not found');
+
     const valid = await bcrypt.compare(dto.currentPassword, user.password);
     if (!valid) throw new BadRequestException('Current password is incorrect');
+
     await this.users.updatePassword(
       userId,
       await bcrypt.hash(dto.newPassword, 10),
     );
-    return this.issueTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    await this.sessions.revokeAllForUser(userId);
+
+    return this.startSession(
+      { id: user.id, email: user.email, role: user.role },
+      userAgent,
+    );
   }
 
-  private async issueTokens(payload: JwtPayload) {
+  private async startSession(identity: JwtPayload, userAgent?: string) {
+    const sid = randomUUID();
+    const tokens = await this.signTokens(identity, sid);
+    await this.sessions.create({
+      sid,
+      userId: identity.id,
+      tokenHash: sha256(tokens.refreshToken),
+      expiresAt: refreshExpiry(),
+      userAgent,
+    });
+    return { ...tokens, payload: identity };
+  }
+
+  private async signTokens(identity: JwtPayload, sid: string) {
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwt.signAsync(payload, {
+      this.jwt.signAsync(identity, {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
         expiresIn: ACCESS_TTL_S,
       }),
-      this.jwt.signAsync(payload, {
-        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: REFRESH_TTL_S,
-        jwtid: randomUUID(),
-      }),
+      this.jwt.signAsync(
+        { ...identity, sid },
+        {
+          secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+          expiresIn: REFRESH_TTL_S,
+          jwtid: randomUUID(),
+        },
+      ),
     ]);
-    await this.users.setRefreshTokenHash(payload.id, sha256(refreshToken));
-    return { accessToken, refreshToken, payload };
+    return { accessToken, refreshToken };
+  }
+
+  private async verifyRefreshToken(token: string) {
+    try {
+      const payload = await this.jwt.verifyAsync<RefreshPayload>(token, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+      if (typeof payload.sid !== 'string') throw new UnauthorizedException();
+      return payload;
+    } catch {
+      throw new UnauthorizedException();
+    }
   }
 }

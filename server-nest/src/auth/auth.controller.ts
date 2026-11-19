@@ -17,6 +17,12 @@ import { LoginDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import type { JwtPayload } from './strategies/jwt.strategy.js';
 
+const SESSION_MARKER = 'session_active';
+
+function userAgentOf(request: Request) {
+  return request.get('user-agent')?.slice(0, 200);
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,9 +34,13 @@ export class AuthController {
   @HttpCode(200)
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken, payload } = await this.auth.login(dto);
+    const { accessToken, refreshToken, payload } = await this.auth.login(
+      dto,
+      userAgentOf(req),
+    );
     this.setAuthCookies(res, accessToken, refreshToken);
     return { user: payload };
   }
@@ -68,11 +78,13 @@ export class AuthController {
   async changePassword(
     @CurrentUser() user: JwtPayload,
     @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken } = await this.auth.changePassword(
       user.id,
       dto,
+      userAgentOf(req),
     );
     this.setAuthCookies(res, accessToken, refreshToken);
     return { success: true };
@@ -93,12 +105,15 @@ export class AuthController {
   ) {
     res.cookie('access_token', accessToken, {
       ...this.baseCookieOptions,
-      maxAge: REFRESH_TTL_S * 1000,
+      maxAge: ACCESS_TTL_S * 1000,
     });
-
     res.cookie('refresh_token', refreshToken, {
       ...this.baseCookieOptions,
       path: '/api/auth',
+      maxAge: REFRESH_TTL_S * 1000,
+    });
+    res.cookie(SESSION_MARKER, '1', {
+      ...this.baseCookieOptions,
       maxAge: REFRESH_TTL_S * 1000,
     });
   }
@@ -109,5 +124,6 @@ export class AuthController {
       ...this.baseCookieOptions,
       path: '/api/auth',
     });
+    res.clearCookie(SESSION_MARKER, this.baseCookieOptions);
   }
 }

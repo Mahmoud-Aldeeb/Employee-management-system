@@ -11,6 +11,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { exportToCSV, type CsvColumn } from '@/lib/export-csv';
 import GeneratePayslipModal from './GeneratePayslipModal';
 import PayslipList from './PayslipList';
+import { useMySalary } from '@/hooks/use-salary';
+import SalaryBreakdown from '../salary/SalaryBreakdown';
 
 const EXPORT_COLUMNS: CsvColumn[] = [
   { label: 'Employee First Name', key: 'employee.firstName' },
@@ -27,6 +29,9 @@ export default function PayslipsView() {
   const [modalOpen, setModalOpen] = useState(false);
   const { data: session } = useSession();
   const isAdmin = session?.role === 'ADMIN';
+
+  const isEmployee = session?.role === 'EMPLOYEE';
+  const { data: mySalary } = useMySalary(isEmployee);
 
   const { data: payslips, isPending, isError, error } = usePayslips();
   const { data: allEmployees } = useEmployees('', { enabled: isAdmin });
@@ -80,6 +85,7 @@ export default function PayslipsView() {
         </div>
       </div>
 
+      {isEmployee && mySalary && <SalaryBreakdown salary={mySalary} className="mb-6 max-w-xl" />}
       <PayslipList payslips={payslips} isAdmin={isAdmin} />
 
       {isAdmin && (

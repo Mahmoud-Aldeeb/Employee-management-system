@@ -4,6 +4,8 @@ import { UsersModule } from '../users/users.module.js';
 import { EmployeesController } from './employees.controller.js';
 import { EmployeesService } from './employees.service.js';
 import { Employee, EmployeeSchema } from './schemas/employee.schema.js';
+import { SalariesModule } from '../salaries/salaries.module.js';
+import { SessionsModule } from '../sessions/sessions.module.js';
 
 @Module({
   imports: [
@@ -11,6 +13,8 @@ import { Employee, EmployeeSchema } from './schemas/employee.schema.js';
       { name: Employee.name, schema: EmployeeSchema },
     ]),
     UsersModule,
+    SalariesModule,
+    SessionsModule,
   ],
   controllers: [EmployeesController],
   providers: [EmployeesService],
