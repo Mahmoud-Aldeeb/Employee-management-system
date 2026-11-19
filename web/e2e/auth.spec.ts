@@ -94,4 +94,30 @@ test.describe("authentication", () => {
       cookies.find((cookie) => cookie.name === "access_token")?.value,
     ).not.toBe("expired-token");
   });
+
+  test("two tabs renewing at the same moment both stay signed in", async ({
+    page,
+    context,
+  }) => {
+    await signInAsAdmin(page);
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    const second = await context.newPage();
+    await second.goto("/dashboard");
+    await expect(
+      second.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+
+    await context.addCookies([
+      { name: "access_token", value: "expired-token", url: BASE_URL },
+    ]);
+    await Promise.all([page.reload(), second.reload()]);
+
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+    await expect(
+      second.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+  });
 });

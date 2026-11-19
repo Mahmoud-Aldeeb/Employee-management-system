@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { AttendanceResponse } from "@/types";
+import { invalidateAppData } from "@/lib/invalidate";
 
 export const ATTENDANCE_KEY = ["attendance"] as const;
 
@@ -24,10 +25,6 @@ export function useClockInOut() {
       );
       return data;
     },
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ATTENDANCE_KEY }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      ]),
+    onSuccess: () => invalidateAppData(queryClient),
   });
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const SESSION_COOKIE = "access_token";
+const SESSION_COOKIE = "session_active";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -57,6 +57,7 @@ export default function GeneratePayslipModal({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm<PayslipValues>({
     resolver: zodResolver(payslipSchema),
@@ -69,6 +70,17 @@ export default function GeneratePayslipModal({
   });
   const safe = (value: number) => (Number.isFinite(value) ? value : 0);
   const netSalary = safe(basicSalary) + safe(allowances) - safe(deductions);
+
+
+  const fillFromEmployee = (employeeId: string) => {
+    const employee = employees.find((item) => item._id === employeeId);
+    if (!employee) return;
+
+    setValue('basicSalary', employee.basicSalary, { shouldValidate: true });
+    setValue('allowances', employee.allowances, { shouldValidate: true });
+    setValue('deductions', employee.deductions, { shouldValidate: true });
+  };
+
 
   const handleClose = () => {
     reset(getDefaultValues());
@@ -89,7 +101,12 @@ export default function GeneratePayslipModal({
     <Modal open={open} onClose={handleClose} title="Generate Monthly Payslip" maxWidth="max-w-lg">
       <form onSubmit={onSubmit} noValidate className="space-y-4 text-sm text-slate-700">
         <Field label="Employee" htmlFor="employeeId" error={errors.employeeId?.message}>
-          <select id="employeeId" {...register('employeeId')}>
+          <select
+            id="employeeId"
+            {...register('employeeId', {
+              onChange: (event: { target: { value: string } }) => fillFromEmployee(event.target.value),
+            })}
+          >
             <option value="">Select employee</option>
             {employees.map((employee) => (
               <option key={employee._id} value={employee._id}>
@@ -150,6 +167,10 @@ export default function GeneratePayslipModal({
             />
           </Field>
         </div>
+
+        <p className="text-xs text-slate-400">
+          Amounts are filled from the employee&apos;s current salary. You can adjust them before generating.
+        </p>
 
         <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
           <span className="text-slate-500">Net salary</span>

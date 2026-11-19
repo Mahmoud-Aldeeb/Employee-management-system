@@ -14,9 +14,6 @@ export class User {
 
   @Prop({ type: String, enum: Role, default: Role.EMPLOYEE })
   role!: Role;
-
-  @Prop({ type: String, select: false, default: null })
-  refreshTokenHash?: string | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

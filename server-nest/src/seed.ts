@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { AppModule } from './app.module.js';
 import { Role } from './common/enums/role.enum.js';
 import { UsersService } from './users/users.service.js';
+import { SessionsService } from './sessions/sessions.service.js';
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule, {
@@ -29,6 +30,7 @@ async function seed() {
     console.log(`Admin created: ${email}`);
   } else if (process.argv.includes('--reset')) {
     await users.updatePassword(existing.id, hashed);
+    await app.get(SessionsService).revokeAllForUser(existing.id);
     console.log(`Password reset for: ${email}`);
   } else {
     console.log(

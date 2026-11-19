@@ -5,10 +5,21 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 }
 
 const NO_REFRESH_URLS = ["/auth/login", "/auth/refresh"];
+const REFRESH_LOCK = "ems-refresh-session";
 
 export const api = axios.create({ baseURL: "/api" });
 
 let refreshing: Promise<unknown> | null = null;
+
+function requestRefresh() {
+  const refresh = () => api.post("/auth/refresh");
+
+  if (typeof navigator !== "undefined" && "locks" in navigator) {
+    return navigator.locks.request(REFRESH_LOCK, refresh);
+  }
+
+  return refresh();
+}
 
 api.interceptors.response.use(
   (response) => response,
@@ -24,7 +35,7 @@ api.interceptors.response.use(
     if (!shouldRefresh) throw error;
 
     original._retry = true;
-    refreshing ??= api.post("/auth/refresh").finally(() => {
+    refreshing ??= requestRefresh().finally(() => {
       refreshing = null;
     });
 

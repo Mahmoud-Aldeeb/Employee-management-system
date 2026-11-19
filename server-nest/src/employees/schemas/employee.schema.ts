@@ -30,15 +30,6 @@ export class Employee {
   @Prop({ required: true })
   position!: string;
 
-  @Prop({ default: 0 })
-  basicSalary!: number;
-
-  @Prop({ default: 0 })
-  allowances!: number;
-
-  @Prop({ default: 0 })
-  deductions!: number;
-
   @Prop({
     type: String,
     enum: EmploymentStatus,

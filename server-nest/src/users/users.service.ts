@@ -4,9 +4,7 @@ import type { ClientSession, Model } from 'mongoose';
 import { User } from './schemas/user.schema.js';
 
 type NewUser = Pick<User, 'email' | 'password' | 'role'>;
-type UserChanges = Partial<
-  Pick<User, 'email' | 'password' | 'role' | 'refreshTokenHash'>
->;
+type UserChanges = Partial<Pick<User, 'email' | 'password' | 'role'>>;
 
 @Injectable()
 export class UsersService {
@@ -23,6 +21,10 @@ export class UsersService {
     return this.userModel.updateOne({ _id: id }, changes, { session }).exec();
   }
 
+  findById(id: string) {
+    return this.userModel.findById(id).exec();
+  }
+
   findByEmailWithPassword(email: string) {
     return this.userModel.findOne({ email }).select('+password').exec();
   }
@@ -31,22 +33,9 @@ export class UsersService {
     return this.userModel.findById(id).select('+password').exec();
   }
 
-  findByIdWithRefreshHash(id: string) {
-    return this.userModel.findById(id).select('+refreshTokenHash').exec();
-  }
-
-  setRefreshTokenHash(id: string, hash: string | null) {
-    return this.userModel
-      .updateOne({ _id: id }, { refreshTokenHash: hash })
-      .exec();
-  }
-
   updatePassword(id: string, hashedPassword: string) {
     return this.userModel
-      .updateOne(
-        { _id: id },
-        { password: hashedPassword, refreshTokenHash: null },
-      )
+      .updateOne({ _id: id }, { password: hashedPassword })
       .exec();
   }
 }

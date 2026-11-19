@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Profile } from "@/types";
+import { invalidateAppData } from "@/lib/invalidate";
 
 const PROFILE_KEY = ["profile"] as const;
 
@@ -21,6 +22,6 @@ export function useUpdateProfile() {
     mutationFn: async (bio: string) => {
       await api.post("/profile", { bio });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: PROFILE_KEY }),
+    onSuccess: () => invalidateAppData(queryClient),
   });
 }

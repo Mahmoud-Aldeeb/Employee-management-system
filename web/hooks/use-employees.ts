@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Employee, EmploymentStatus, Role } from "@/types";
+import { invalidateAppData } from "@/lib/invalidate";
 
 export const EMPLOYEES_KEY = ["employees"] as const;
 
@@ -46,30 +47,20 @@ export function useEmployees(
   });
 }
 
-function useInvalidateEmployees() {
-  const queryClient = useQueryClient();
-
-  return () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: EMPLOYEES_KEY }),
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-    ]);
-}
-
 export function useCreateEmployee() {
-  const invalidate = useInvalidateEmployees();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: EmployeePayload) => {
       const { data } = await api.post("/employees", input);
       return data;
     },
-    onSuccess: invalidate,
+    onSuccess: () => invalidateAppData(queryClient),
   });
 }
 
 export function useUpdateEmployee() {
-  const invalidate = useInvalidateEmployees();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
@@ -82,17 +73,17 @@ export function useUpdateEmployee() {
       const { data } = await api.put(`/employees/${id}`, input);
       return data;
     },
-    onSuccess: invalidate,
+    onSuccess: () => invalidateAppData(queryClient),
   });
 }
 
 export function useDeleteEmployee() {
-  const invalidate = useInvalidateEmployees();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/employees/${id}`);
     },
-    onSuccess: invalidate,
+    onSuccess: () => invalidateAppData(queryClient),
   });
 }

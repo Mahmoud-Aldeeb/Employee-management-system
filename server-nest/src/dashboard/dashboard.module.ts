@@ -15,6 +15,7 @@ import {
 import { Payslip, PayslipSchema } from '../payslips/schemas/payslip.schema.js';
 import { DashboardController } from './dashboard.controller.js';
 import { DashboardService } from './dashboard.service.js';
+import { SalariesModule } from '../salaries/salaries.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DashboardService } from './dashboard.service.js';
       { name: LeaveApplication.name, schema: LeaveApplicationSchema },
       { name: Payslip.name, schema: PayslipSchema },
     ]),
+    SalariesModule,
   ],
   controllers: [DashboardController],
   providers: [DashboardService],

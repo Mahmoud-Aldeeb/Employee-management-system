@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Employee, Payslip } from "@/types";
+import { invalidateAppData } from "@/lib/invalidate";
 
 export const PAYSLIPS_KEY = ["payslips"] as const;
 
@@ -55,6 +56,6 @@ export function useCreatePayslip() {
     mutationFn: async (input: PayslipInput) => {
       await api.post("/payslips", input);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: PAYSLIPS_KEY }),
+    onSuccess: () => invalidateAppData(queryClient),
   });
 }
