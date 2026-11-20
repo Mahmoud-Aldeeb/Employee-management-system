@@ -8,122 +8,90 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { ACCESS_TTL_S, AuthService, REFRESH_TTL_S } from './auth.service.js';
+import { AuthCookies } from './auth-cookies.service.js';
+import { REFRESH_COOKIE } from './auth.constants.js';
+import { AuthService } from './auth.service.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { userAgentOf } from './request-user-agent.js';
 import type { JwtPayload } from './strategies/jwt.strategy.js';
 
-const SESSION_MARKER = 'session_active';
-
-function userAgentOf(request: Request) {
-  return request.get('user-agent')?.slice(0, 200);
-}
-
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
-    private readonly config: ConfigService,
+    private readonly cookies: AuthCookies,
   ) {}
 
   @Post('login')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Sign in and receive the session cookies' })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken, payload } = await this.auth.login(
-      dto,
-      userAgentOf(req),
-    );
-    this.setAuthCookies(res, accessToken, refreshToken);
+    const { payload, ...tokens } = await this.auth.login(dto, userAgentOf(req));
+    this.cookies.set(res, tokens);
     return { user: payload };
   }
 
   @Post('refresh')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Rotate the refresh token and issue new cookies' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken, payload } = await this.auth.refresh(
-      req.cookies?.refresh_token,
+    const { payload, ...tokens } = await this.auth.refresh(
+      req.cookies?.[REFRESH_COOKIE],
     );
-    this.setAuthCookies(res, accessToken, refreshToken);
+    this.cookies.set(res, tokens);
     return { user: payload };
   }
 
   @Post('logout')
   @HttpCode(200)
+  @ApiOperation({ summary: 'End the session of the current device' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    await this.auth.logout(req.cookies?.refresh_token);
-    this.clearAuthCookies(res);
+    await this.auth.logout(req.cookies?.[REFRESH_COOKIE]);
+    this.cookies.clear(res);
     return { success: true };
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth()
   @Get('session')
+  @ApiOperation({ summary: 'Return the signed-in user' })
   session(@CurrentUser() user: JwtPayload) {
     return { user };
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth()
   @Post('change-password')
   @HttpCode(200)
+  @ApiOperation({
+    summary: 'Change the password and sign out every other device',
+  })
   async changePassword(
     @CurrentUser() user: JwtPayload,
     @Body() dto: ChangePasswordDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken } = await this.auth.changePassword(
+    const { payload, ...tokens } = await this.auth.changePassword(
       user.id,
       dto,
       userAgentOf(req),
     );
-    this.setAuthCookies(res, accessToken, refreshToken);
+    void payload;
+    this.cookies.set(res, tokens);
     return { success: true };
-  }
-
-  private get baseCookieOptions() {
-    return {
-      httpOnly: true,
-      secure: this.config.get<string>('NODE_ENV') === 'production',
-      sameSite: 'lax' as const,
-    };
-  }
-
-  private setAuthCookies(
-    res: Response,
-    accessToken: string,
-    refreshToken: string,
-  ) {
-    res.cookie('access_token', accessToken, {
-      ...this.baseCookieOptions,
-      maxAge: ACCESS_TTL_S * 1000,
-    });
-    res.cookie('refresh_token', refreshToken, {
-      ...this.baseCookieOptions,
-      path: '/api/auth',
-      maxAge: REFRESH_TTL_S * 1000,
-    });
-    res.cookie(SESSION_MARKER, '1', {
-      ...this.baseCookieOptions,
-      maxAge: REFRESH_TTL_S * 1000,
-    });
-  }
-
-  private clearAuthCookies(res: Response) {
-    res.clearCookie('access_token', this.baseCookieOptions);
-    res.clearCookie('refresh_token', {
-      ...this.baseCookieOptions,
-      path: '/api/auth',
-    });
-    res.clearCookie(SESSION_MARKER, this.baseCookieOptions);
   }
 }

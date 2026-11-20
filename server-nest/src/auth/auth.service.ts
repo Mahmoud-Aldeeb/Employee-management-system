@@ -10,18 +10,19 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { Role } from '../common/enums/role.enum.js';
+import { isDemoEmail } from '../demo/demo.constants.js';
 import { SessionsService } from '../sessions/sessions.service.js';
 import { UsersService } from '../users/users.service.js';
+import { ACCESS_TTL_S, REFRESH_TTL_S } from './auth.constants.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import type { JwtPayload } from './strategies/jwt.strategy.js';
 
-export const ACCESS_TTL_S = 15 * 60;
-export const REFRESH_TTL_S = 7 * 24 * 60 * 60;
-
 interface RefreshPayload extends JwtPayload {
   sid: string;
 }
+
+const DEMO_SESSION_LIMIT = 200;
 
 const sha256 = (value: string) =>
   createHash('sha256').update(value).digest('hex');
@@ -50,10 +51,24 @@ export class AuthService {
     if (dto.role_type === 'employee' && user.role !== Role.EMPLOYEE) {
       throw new ForbiddenException('Not authorized as employee');
     }
-    return this.startSession(
+    return this.openSession(
       { id: user.id, email: user.email, role: user.role },
       userAgent,
     );
+  }
+
+  async openSession(identity: JwtPayload, userAgent?: string) {
+    const sid = randomUUID();
+    const tokens = await this.signTokens(identity, sid);
+    await this.sessions.create({
+      sid,
+      userId: identity.id,
+      tokenHash: sha256(tokens.refreshToken),
+      expiresAt: refreshExpiry(),
+      userAgent,
+      maxSessions: isDemoEmail(identity.email) ? DEMO_SESSION_LIMIT : undefined,
+    });
+    return { ...tokens, payload: identity };
   }
 
   async refresh(refreshToken?: string) {
@@ -107,6 +122,11 @@ export class AuthService {
   ) {
     const user = await this.users.findByIdWithPassword(userId);
     if (!user) throw new NotFoundException('User not found');
+    if (isDemoEmail(user.email)) {
+      throw new ForbiddenException(
+        'Demo accounts cannot change their password',
+      );
+    }
 
     const valid = await bcrypt.compare(dto.currentPassword, user.password);
     if (!valid) throw new BadRequestException('Current password is incorrect');
@@ -117,23 +137,10 @@ export class AuthService {
     );
     await this.sessions.revokeAllForUser(userId);
 
-    return this.startSession(
+    return this.openSession(
       { id: user.id, email: user.email, role: user.role },
       userAgent,
     );
-  }
-
-  private async startSession(identity: JwtPayload, userAgent?: string) {
-    const sid = randomUUID();
-    const tokens = await this.signTokens(identity, sid);
-    await this.sessions.create({
-      sid,
-      userId: identity.id,
-      tokenHash: sha256(tokens.refreshToken),
-      expiresAt: refreshExpiry(),
-      userAgent,
-    });
-    return { ...tokens, payload: identity };
   }
 
   private async signTokens(identity: JwtPayload, sid: string) {

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { type Model } from 'mongoose';
 import { AuthSession } from './schemas/auth-session.schema.js';
 
-const MAX_SESSIONS_PER_USER = 10;
+const DEFAULT_MAX_SESSIONS = 10;
 
 interface NewSession {
   sid: string;
@@ -11,6 +11,7 @@ interface NewSession {
   tokenHash: string;
   expiresAt: Date;
   userAgent?: string;
+  maxSessions?: number;
 }
 
 @Injectable()
@@ -29,7 +30,7 @@ export class SessionsService {
       userAgent: input.userAgent ?? null,
       lastUsedAt: new Date(),
     });
-    await this.trim(input.userId);
+    await this.trim(input.userId, input.maxSessions ?? DEFAULT_MAX_SESSIONS);
   }
 
   findActive(sid: string) {
@@ -62,11 +63,11 @@ export class SessionsService {
     await this.sessionModel.deleteMany({ userId }).exec();
   }
 
-  private async trim(userId: string) {
+  private async trim(userId: string, limit: number) {
     const stale = await this.sessionModel
       .find({ userId })
       .sort({ lastUsedAt: -1 })
-      .skip(MAX_SESSIONS_PER_USER)
+      .skip(limit)
       .select('_id')
       .lean()
       .exec();
