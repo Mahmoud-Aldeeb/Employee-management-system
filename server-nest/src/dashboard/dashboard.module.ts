@@ -13,9 +13,12 @@ import {
   LeaveApplicationSchema,
 } from '../leave/schemas/leave-application.schema.js';
 import { Payslip, PayslipSchema } from '../payslips/schemas/payslip.schema.js';
+import { SalariesModule } from '../salaries/salaries.module.js';
+import { Salary, SalarySchema } from '../salaries/schemas/salary.schema.js';
+import { AdminDashboardService } from './admin-dashboard.service.js';
 import { DashboardController } from './dashboard.controller.js';
 import { DashboardService } from './dashboard.service.js';
-import { SalariesModule } from '../salaries/salaries.module.js';
+import { EmployeeDashboardService } from './employee-dashboard.service.js';
 
 @Module({
   imports: [
@@ -24,10 +27,15 @@ import { SalariesModule } from '../salaries/salaries.module.js';
       { name: Attendance.name, schema: AttendanceSchema },
       { name: LeaveApplication.name, schema: LeaveApplicationSchema },
       { name: Payslip.name, schema: PayslipSchema },
+      { name: Salary.name, schema: SalarySchema },
     ]),
     SalariesModule,
   ],
   controllers: [DashboardController],
-  providers: [DashboardService],
+  providers: [
+    DashboardService,
+    AdminDashboardService,
+    EmployeeDashboardService,
+  ],
 })
 export class DashboardModule {}
