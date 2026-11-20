@@ -1,46 +1,81 @@
-import {
-  Building2Icon,
-  Calendar1Icon,
-  FileTextIcon,
-  UserIcon,
-  type LucideIcon,
-} from 'lucide-react';
+import { CalendarCheckIcon, FileTextIcon, UsersIcon, WalletIcon } from 'lucide-react';
+import DepartmentBars from '@/components/ui/DepartmentBars';
+import StatCard from '@/components/ui/StatCard';
+import { COLORS } from '@/lib/chart-colors';
+import { formatMoney } from '@/lib/format';
 import type { AdminDashboardData } from '@/types';
-
-interface Stat {
-  icon: LucideIcon;
-  value: number;
-  label: string;
-}
+import AttendanceTrend from './AttendanceTrend';
+import DashboardSection from './DashboardSection';
+import PendingApprovals from './PendingApprovals';
+import WhosOut from './WhosOut';
 
 export default function AdminDashboard({ data }: { data: AdminDashboardData }) {
-  const stats: Stat[] = [
-    { icon: UserIcon, value: data.totalEmployees, label: 'Total Employees' },
-    { icon: Building2Icon, value: data.totalDepartments, label: 'Departments' },
-    { icon: Calendar1Icon, value: data.todayAttendance, label: "Today's Attendance" },
-    { icon: FileTextIcon, value: data.pendingLeaves, label: 'Pending Leaves' },
-  ];
-
   return (
-    <div className="animate-fade-in">
-      <div className="page-header">
+    <div className="animate-fade-in space-y-6 sm:space-y-8">
+      <div className="page-header mb-0">
         <h1 className="page-title">Dashboard</h1>
         <p className="page-subtitle">Welcome back, Admin - here&apos;s your overview</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="card card-hover p-5 sm:p-6 relative overflow-hidden group flex items-center justify-between"
-          >
-            <div>
-              <div className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full bg-slate-500/70 group-hover:bg-indigo-500/70" />
-              <p className="text-sm font-medium text-slate-700">{stat.label}</p>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-            </div>
-            <stat.icon className="size-10 p-2.5 rounded-lg bg-slate-100 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors duration-200" />
-          </div>
-        ))}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+        <StatCard
+          icon={UsersIcon}
+          label="Total Employees"
+          value={data.totalEmployees}
+          hint={`${data.newHiresThisMonth} joined this month`}
+          color={COLORS.indigo}
+        />
+        <StatCard
+          icon={CalendarCheckIcon}
+          label="Today's Attendance"
+          value={data.todayAttendance}
+          hint={`${data.attendanceRate}% attendance rate`}
+          color={COLORS.emerald}
+        />
+        <StatCard
+          icon={FileTextIcon}
+          label="Pending Leaves"
+          value={data.pendingLeaves}
+          hint="Awaiting your approval"
+          color={COLORS.amber}
+        />
+        <StatCard
+          icon={WalletIcon}
+          label="Monthly Payroll"
+          value={formatMoney(data.monthlyPayroll)}
+          hint="Net, active employees"
+          color={COLORS.violet}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <PendingApprovals
+          items={data.pendingRequests}
+          total={data.pendingLeaves}
+          className="lg:col-span-2"
+        />
+        <WhosOut items={data.whosOut} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DashboardSection
+          id="attendance-trend"
+          title="Attendance, last 7 days"
+          description={`Late arrivals today: ${data.lateToday}`}
+        >
+          <AttendanceTrend days={data.attendanceTrend} />
+        </DashboardSection>
+        <DashboardSection
+          id="headcount"
+          title="Headcount by department"
+          description={`${data.totalDepartments} departments in use`}
+        >
+          {data.departments.length === 0 ? (
+            <p className="py-6 text-center text-slate-400">No employees yet</p>
+          ) : (
+            <DepartmentBars items={data.departments} />
+          )}
+        </DashboardSection>
       </div>
     </div>
   );

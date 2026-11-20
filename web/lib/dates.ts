@@ -22,3 +22,12 @@ export function dayKey(value: string) {
 export function dayFromKey(value: string) {
   return parseISO(dayKey(value));
 }
+
+export function formatDayRange(start: string, end: string) {
+  const from = dayFromKey(start);
+  const to = dayFromKey(end);
+
+  return dayKey(start) === dayKey(end)
+    ? format(from, "MMM dd, yyyy")
+    : `${format(from, "MMM dd")} - ${format(to, "MMM dd, yyyy")}`;
+}

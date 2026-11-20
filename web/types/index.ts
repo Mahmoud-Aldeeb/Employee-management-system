@@ -77,21 +77,68 @@ export interface Payslip {
   createdAt: string;
 }
 
+export interface PendingLeaveItem {
+  id: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  employeeName: string;
+  department: string | null;
+}
+
+export interface WhosOutItem {
+  id: string;
+  employeeName: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+}
+
+export interface AttendanceTrendDay {
+  date: string;
+  checkedIn: number;
+  late: number;
+}
+
+export interface DepartmentCount {
+  department: string;
+  count: number;
+}
+
 export interface AdminDashboardData {
   role: "ADMIN";
   totalEmployees: number;
   totalDepartments: number;
+  newHiresThisMonth: number;
   todayAttendance: number;
+  lateToday: number;
+  attendanceRate: number;
   pendingLeaves: number;
+  monthlyPayroll: number;
+  attendanceTrend: AttendanceTrendDay[];
+  departments: DepartmentCount[];
+  pendingRequests: PendingLeaveItem[];
+  whosOut: WhosOutItem[];
+}
+
+export interface UpcomingLeave {
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
 }
 
 export interface EmployeeDashboardData {
   role: "EMPLOYEE";
   employee: EmployeeSummary;
-  currentMonthAttendance: number;
-  pendingLeaves: number;
   salary: SalarySummary;
   latestPayslip: Payslip | null;
+  currentMonthAttendance: number;
+  lateThisMonth: number;
+  pendingLeaves: number;
+  todayRecord: AttendanceRecord | null;
+  leaveDaysThisYear: Record<LeaveType, number>;
+  upcomingLeave: UpcomingLeave | null;
 }
 
 export type DashboardData = AdminDashboardData | EmployeeDashboardData;
