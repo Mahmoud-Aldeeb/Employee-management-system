@@ -105,17 +105,32 @@ npm run dev
 
 Open http://localhost:3000.
 
+## Live demo and API docs
+
+- **Try it without signing up:** the login page has "Explore as Admin" and "Explore as Employee" buttons (enabled with `DEMO_MODE=true`). The demo uses sample data that is rebuilt every night, never sends email and only touches accounts on the reserved `demo.example.com` domain.
+- **API documentation (Swagger UI):** `/api/docs` on the API origin. Sign in from the page itself or use the demo login, and the browser session authorizes the "Try it out" requests.
+- **Health check:** `GET /api/health` returns the service and database status (HTTP 503 when the database is unreachable).
+
+## Run everything with Docker
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:3000 and use the demo buttons. MongoDB runs as a single-node replica set (required for transactions). To create a real admin: `docker compose exec api node dist/seed.js`.
+
 ### Environment variables
 
-| App         | Variable                                                           | Purpose                                      |
-| ----------- | ------------------------------------------------------------------ | -------------------------------------------- |
-| server-nest | `MONGODB_URL`                                                      | MongoDB connection string                    |
-| server-nest | `JWT_SECRET`, `JWT_REFRESH_SECRET`                                 | Token signing secrets (32+ characters)       |
-| server-nest | `CLIENT_URL`                                                       | Frontend origin                              |
-| server-nest | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SENDER_EMAIL` | Email delivery                               |
-| server-nest | `ADMIN_EMAIL`, `ADMIN_PASSWORD`                                    | Seed script and admin reminders              |
-| server-nest | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`                         | Background jobs                              |
-| web         | `API_URL`                                                          | NestJS API origin used by the `/api` rewrite |
+| App         | Variable                                                           | Purpose                                                                    |
+| ----------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| server-nest | `MONGODB_URL`                                                      | MongoDB connection string                                                  |
+| server-nest | `JWT_SECRET`, `JWT_REFRESH_SECRET`                                 | Token signing secrets (32+ characters)                                     |
+| server-nest | `CLIENT_URL`                                                       | Frontend origin                                                            |
+| server-nest | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SENDER_EMAIL` | Email delivery                                                             |
+| server-nest | `ADMIN_EMAIL`, `ADMIN_PASSWORD`                                    | Seed script and admin reminders                                            |
+| server-nest | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`                         | Background jobs                                                            |
+| web         | `API_URL`                                                          | NestJS API origin used by the `/api` rewrite                               |
+| server-nest | DEMO_MODE                                                          | Enables the demo accounts, nightly demo reset and disables outgoing email. |
 
 ## Repository structure
 
