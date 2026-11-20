@@ -21,6 +21,7 @@ import {
 } from '../mail/email-templates.js';
 import { MailService } from '../mail/mail.service.js';
 import { InngestService } from './inngest.service.js';
+import { DemoService } from '../demo/demo.service.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -35,6 +36,7 @@ export class InngestFunctionsService {
     private readonly inngest: InngestService,
     private readonly mail: MailService,
     private readonly config: ConfigService,
+    private readonly demo: DemoService,
   ) {}
 
   getFunctions() {
@@ -42,6 +44,7 @@ export class InngestFunctionsService {
       this.autoCheckOut(),
       this.leaveApplicationReminder(),
       this.attendanceReminderCron(),
+      this.demoReset(),
     ];
   }
 
@@ -201,6 +204,20 @@ export class InngestFunctionsService {
         }
 
         return { absent: absent.length };
+      },
+    );
+  }
+
+  private demoReset() {
+    return this.inngest.client.createFunction(
+      { id: 'demo-reset', triggers: [{ cron: 'TZ=Africa/Cairo 0 3 * * *' }] },
+      async ({ step }) => {
+        if (!this.demo.isEnabled()) return { skipped: true };
+
+        const summary = await step.run('reset-demo-data', () =>
+          this.demo.reset(),
+        );
+        return { skipped: false, ...summary };
       },
     );
   }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { type Transporter } from 'nodemailer';
 
@@ -10,8 +10,10 @@ interface MailOptions {
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter;
   private readonly from?: string;
+  private readonly demoMode: boolean;
 
   constructor(config: ConfigService) {
     this.transporter = nodemailer.createTransport({
@@ -24,9 +26,14 @@ export class MailService {
       },
     });
     this.from = config.get<string>('SENDER_EMAIL');
+    this.demoMode = config.get<boolean>('DEMO_MODE') === true;
   }
 
   async send({ to, subject, html }: MailOptions) {
+    if (this.demoMode) {
+      this.logger.log(`Demo mode: skipped email "${subject}" to ${to}`);
+      return;
+    }
     await this.transporter.sendMail({ from: this.from, to, subject, html });
   }
 }

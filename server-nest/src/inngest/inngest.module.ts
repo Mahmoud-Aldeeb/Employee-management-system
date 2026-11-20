@@ -4,6 +4,7 @@ import {
   Attendance,
   AttendanceSchema,
 } from '../attendance/schemas/attendance.schema.js';
+import { DemoModule } from '../demo/demo.module.js';
 import {
   Employee,
   EmployeeSchema,
@@ -24,6 +25,7 @@ import { InngestService } from './inngest.service.js';
       { name: LeaveApplication.name, schema: LeaveApplicationSchema },
     ]),
     MailModule,
+    DemoModule,
   ],
   providers: [InngestService, InngestFunctionsService],
   exports: [InngestService, InngestFunctionsService],

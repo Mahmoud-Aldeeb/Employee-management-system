@@ -24,6 +24,9 @@ export class UsersService {
   findById(id: string) {
     return this.userModel.findById(id).exec();
   }
+  findByEmail(email: string) {
+    return this.userModel.findOne({ email }).exec();
+  }
 
   findByEmailWithPassword(email: string) {
     return this.userModel.findOne({ email }).select('+password').exec();

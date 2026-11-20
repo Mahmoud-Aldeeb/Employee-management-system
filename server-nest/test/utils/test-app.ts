@@ -15,7 +15,11 @@ export interface InngestEvent {
   data: Record<string, unknown>;
 }
 
-export async function createTestContext() {
+export interface TestContextOptions {
+  demoMode?: boolean;
+}
+
+export async function createTestContext(options: TestContextOptions = {}) {
   const mongod = await MongoMemoryReplSet.create({
     replSet: { count: 1, storageEngine: 'wiredTiger' },
   });
@@ -25,6 +29,7 @@ export async function createTestContext() {
   process.env.JWT_SECRET = 'test-access-secret-0123456789-abcdefghij';
   process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-0123456789-abcdefghij';
   process.env.CLIENT_URL = 'http://localhost:5173';
+  process.env.DEMO_MODE = String(options.demoMode ?? false);
 
   const { AppModule } = await import('../../src/app.module.js');
 

@@ -16,4 +16,5 @@ export const envValidation = Joi.object({
   SMTP_USER: Joi.string(),
   SMTP_PASS: Joi.string(),
   SENDER_EMAIL: Joi.string(),
+  DEMO_MODE: Joi.boolean().default(false),
 });
