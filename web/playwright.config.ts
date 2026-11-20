@@ -75,6 +75,7 @@ export default defineConfig({
         JWT_SECRET,
         JWT_REFRESH_SECRET,
         CLIENT_URL: BASE_URL,
+        DEMO_MODE: "true",
       },
     },
     {

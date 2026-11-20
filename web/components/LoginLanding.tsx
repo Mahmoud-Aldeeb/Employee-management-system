@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import AuthRedirect from './AuthRedirect';
 import CopyrightYear from './CopyrightYear';
+import DemoLogin from './DemoLogin';
 import LoginLeftSide from './LoginLeftSide';
 
 const portals = [
@@ -14,15 +15,13 @@ export default function LoginLanding() {
   return (
     <div className="min-h-dvh flex flex-col md:flex-row">
       <LoginLeftSide />
-      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-16 relative overflow-y-auto min-h-dvh">
-        <div className="w-full max-w-md animate-fade-in relative z-10">
+      <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-y-auto p-6 sm:p-12 md:w-1/2 lg:p-16">
+        <div className="relative z-10 w-full max-w-md animate-fade-in">
           <div className="mb-10 text-center md:text-left">
-            <h1 className="font-medium text-3xl text-slate-900 tracking-tight mb-3 leading-9">
+            <h1 className="mb-3 text-3xl font-medium leading-9 tracking-tight text-slate-900">
               Welcome Back
             </h1>
-            <p className="text-slate-500">
-              Select your portal to securely access the system.
-            </p>
+            <p className="text-slate-500">Select your portal to securely access the system.</p>
           </div>
 
           <div className="space-y-4">
@@ -30,19 +29,23 @@ export default function LoginLanding() {
               <Link
                 key={portal.href}
                 href={portal.href}
-                className="group block bg-slate-50 border border-slate-200 rounded-lg p-5 sm:p-6 transition-all duration-300 hover:border-indigo-400 hover:bg-indigo-50"
+                className="group block rounded-lg border border-slate-200 bg-slate-50 p-5 transition-all duration-300 hover:border-indigo-400 hover:bg-indigo-50 sm:p-6"
               >
                 <div className="relative z-10 flex items-center justify-between gap-4 sm:gap-5">
-                  <h3 className="text-lg text-slate-800 group-hover:text-indigo-600 mb-1 transition-colors">
+                  <h3 className="mb-1 text-lg text-slate-800 transition-colors group-hover:text-indigo-600">
                     {portal.title}
                   </h3>
-                  <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                  <ArrowRightIcon className="size-4 text-slate-400 transition-all group-hover:translate-x-1 group-hover:text-indigo-600" />
                 </div>
               </Link>
             ))}
           </div>
 
-          <div className="mt-12 text-center md:text-left text-sm text-slate-400">
+          <Suspense fallback={null}>
+            <DemoLogin />
+          </Suspense>
+
+          <div className="mt-12 text-center text-sm text-slate-400 md:text-left">
             <p>
               © <CopyrightYear /> Aldeeb. All rights reserved.
             </p>

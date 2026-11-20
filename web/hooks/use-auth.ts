@@ -39,6 +39,11 @@ function removeUserData(queryClient: QueryClient) {
   });
 }
 
+export function storeSession(queryClient: QueryClient, user: SessionUser) {
+  removeUserData(queryClient);
+  queryClient.setQueryData(SESSION_KEY, user);
+}
+
 export function useSession() {
   return useQuery({
     queryKey: SESSION_KEY,
@@ -60,10 +65,7 @@ export function useLogin() {
       });
       return data.user;
     },
-    onSuccess: (user) => {
-      removeUserData(queryClient);
-      queryClient.setQueryData(SESSION_KEY, user);
-    },
+    onSuccess: (user) => storeSession(queryClient, user),
   });
 }
 
