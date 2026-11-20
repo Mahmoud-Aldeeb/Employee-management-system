@@ -5,6 +5,8 @@ import express, { type RequestHandler } from 'express';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { createLoginRateLimiter } from './common/rate-limit/login-rate-limiter.js';
+import { createSecurityHeaders } from './common/security/security-headers.js';
+import { setupSwagger } from './docs/setup-swagger.js';
 
 const helmetMiddleware =
   (
@@ -31,6 +33,7 @@ export function configureApp(app: INestApplication) {
       crossOriginResourcePolicy: false,
     }),
   );
+  app.use(createSecurityHeaders());
   app.use(cookieParser());
   app.use(express.json());
   app.use('/api/auth/login', createLoginRateLimiter());
@@ -47,4 +50,5 @@ export function configureApp(app: INestApplication) {
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
+  setupSwagger(app);
 }

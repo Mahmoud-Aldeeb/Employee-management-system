@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -20,23 +21,30 @@ import { ListLeavesQueryDto } from './dto/list-leaves-query.dto.js';
 import { UpdateLeaveStatusDto } from './dto/update-leave-status.dto.js';
 import { LeaveService } from './leave.service.js';
 
+@ApiTags('Leave')
+@ApiCookieAuth()
 @Controller('leave')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class LeaveController {
   constructor(private readonly leave: LeaveService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Request a leave (employee)' })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateLeaveDto) {
     return this.leave.create(user.id, dto);
   }
 
   @Get()
+  @ApiOperation({ summary: 'Own leaves for employees, every leave for admins' })
   findAll(@CurrentUser() user: JwtPayload, @Query() query: ListLeavesQueryDto) {
     return this.leave.findAll(user, query.status);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
+  @ApiOperation({
+    summary: 'Approve, reject or reopen a leave request (admin)',
+  })
   updateStatus(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateLeaveStatusDto,

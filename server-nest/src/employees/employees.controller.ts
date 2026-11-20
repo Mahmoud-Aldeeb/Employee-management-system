@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
@@ -19,6 +20,8 @@ import { ListEmployeesQueryDto } from './dto/list-employees-query.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import { EmployeesService } from './employees.service.js';
 
+@ApiTags('Employees')
+@ApiCookieAuth()
 @Controller('employees')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
@@ -26,28 +29,34 @@ export class EmployeesController {
   constructor(private readonly employees: EmployeesService) {}
 
   @Get()
-  findAll(@Query() query: ListEmployeesQueryDto): Promise<any[]> {
+  @ApiOperation({ summary: 'List employees with their salary (admin)' })
+  findAll(@Query() query: ListEmployeesQueryDto): Promise<object[]> {
     return this.employees.findAll(query.department);
   }
 
   @Post()
-  async create(
-    @Body() dto: CreateEmployeeDto,
-  ): Promise<{ success: boolean; employee: any }> {
+  @ApiOperation({
+    summary: 'Create an employee and their login account (admin)',
+  })
+  async create(@Body() dto: CreateEmployeeDto) {
     const employee = await this.employees.create(dto);
     return { success: true, employee };
   }
 
   @Put(':id')
+  @ApiOperation({
+    summary: 'Update an employee, their account or their salary (admin)',
+  })
   update(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateEmployeeDto,
-  ): Promise<any> {
+  ) {
     return this.employees.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseObjectIdPipe) id: string): Promise<any> {
+  @ApiOperation({ summary: 'Deactivate an employee (soft delete, admin)' })
+  remove(@Param('id', ParseObjectIdPipe) id: string) {
     return this.employees.remove(id);
   }
 }

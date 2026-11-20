@@ -6,13 +6,16 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { EmployeesService } from '../employees/employees.service.js';
-import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { SalariesService } from '../salaries/salaries.service.js';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
+@ApiTags('Profile')
+@ApiCookieAuth()
 @Controller('profile')
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
@@ -22,6 +25,7 @@ export class ProfileController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Current user profile' })
   async getProfile(@CurrentUser() user: JwtPayload) {
     const employee = await this.employees.findByUserId(user.id);
     if (!employee) {
@@ -31,6 +35,7 @@ export class ProfileController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Update the bio of the current employee' })
   updateProfile(
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateProfileDto,
@@ -39,6 +44,7 @@ export class ProfileController {
   }
 
   @Get('salary')
+  @ApiOperation({ summary: 'Current salary of the signed-in employee' })
   async getSalary(@CurrentUser() user: JwtPayload) {
     const employee = await this.employees.findByUserId(user.id);
     if (!employee) throw new NotFoundException('Employee not found');
