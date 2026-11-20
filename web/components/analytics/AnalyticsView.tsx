@@ -14,8 +14,8 @@ import {
   WeeklyHoursChart,
 } from './AnalyticsCharts';
 import ChartCard from './ChartCard';
-import DepartmentBars from './DepartmentBars';
-import StatCard from './StatCard';
+import DepartmentBars from '@/components/ui/DepartmentBars';
+import StatCard from '@/components/ui/StatCard';
 
 export default function AnalyticsView() {
   const { data, isPending, isError, error } = useAnalytics();

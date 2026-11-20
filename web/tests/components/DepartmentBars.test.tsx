@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import DepartmentBars from '@/components/analytics/DepartmentBars';
+import DepartmentBars from '@/components/ui/DepartmentBars';
 
 describe('DepartmentBars', () => {
   it('sizes every bar relative to the busiest department', () => {
