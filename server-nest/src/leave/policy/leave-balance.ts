@@ -16,7 +16,7 @@ export interface LeaveRecord extends DateRange {
 
 export type LeaveTier = 'first-year' | 'standard' | 'senior';
 
-export interface LeaveBalance {
+export interface LeaveUsage {
   year: number;
   tier: LeaveTier | null;
   entitlement: number;
@@ -25,7 +25,11 @@ export interface LeaveBalance {
   remaining: number;
   casual: { limit: number; taken: number; pending: number; remaining: number };
   sickTaken: number;
+}
+
+export interface LeaveBalance extends LeaveUsage {
   annualAvailableFrom: string;
+  annualAvailable: boolean;
 }
 
 export interface LeaveRequestInput extends DateRange {
@@ -38,11 +42,15 @@ export interface BookingContext {
   policy: LeavePolicy;
 }
 
-interface BalanceInput {
+interface UsageInput {
   joinDate: Date;
   year: number;
   leaves: readonly LeaveRecord[];
   policy: LeavePolicy;
+}
+
+interface BalanceInput extends UsageInput {
+  today: Date;
 }
 
 const DEDUCTED_TYPES: readonly LeaveType[] = [
@@ -104,12 +112,12 @@ export function entitlementFor(tier: LeaveTier | null, policy: LeavePolicy) {
   }
 }
 
-export function computeBalance({
+export function summarizeUsage({
   joinDate,
   year,
   leaves,
   policy,
-}: BalanceInput): LeaveBalance {
+}: UsageInput): LeaveUsage {
   const tier = tierFor(joinDate, year, policy);
   const entitlement = entitlementFor(tier, policy);
   const taken = daysInYear(leaves, year, DEDUCTED_TYPES, APPROVED_ONLY, policy);
@@ -149,10 +157,22 @@ export function computeBalance({
       remaining: policy.casualPerYear - casualTaken - casualPending,
     },
     sickTaken: daysInYear(leaves, year, SICK_ONLY, APPROVED_ONLY, policy),
-    annualAvailableFrom: addMonthsUtc(
-      joinDate,
-      policy.annualWaitingMonths,
-    ).toISOString(),
+  };
+}
+
+export function computeBalance({
+  today,
+  ...usage
+}: BalanceInput): LeaveBalance {
+  const availableFrom = addMonthsUtc(
+    usage.joinDate,
+    usage.policy.annualWaitingMonths,
+  );
+
+  return {
+    ...summarizeUsage(usage),
+    annualAvailableFrom: availableFrom.toISOString(),
+    annualAvailable: availableFrom.getTime() <= today.getTime(),
   };
 }
 
@@ -190,13 +210,13 @@ export function findBookingProblem(
   if (request.type === LeaveType.SICK) return null;
 
   for (const [year, days] of daysByYear) {
-    const balance = computeBalance({ joinDate, year, leaves: booked, policy });
+    const usage = summarizeUsage({ joinDate, year, leaves: booked, policy });
 
-    if (days > balance.remaining) {
-      return `Not enough leave balance in ${year}: requested ${days} working ${dayWord(days)}, ${Math.max(0, balance.remaining)} available`;
+    if (days > usage.remaining) {
+      return `Not enough leave balance in ${year}: requested ${days} working ${dayWord(days)}, ${Math.max(0, usage.remaining)} available`;
     }
-    if (request.type === LeaveType.CASUAL && days > balance.casual.remaining) {
-      return `Casual leave limit reached for ${year}: ${Math.max(0, balance.casual.remaining)} of ${balance.casual.limit} days left`;
+    if (request.type === LeaveType.CASUAL && days > usage.casual.remaining) {
+      return `Casual leave limit reached for ${year}: ${Math.max(0, usage.casual.remaining)} of ${usage.casual.limit} days left`;
     }
   }
 

@@ -84,12 +84,14 @@ describe('entitlement tiers (Egyptian Labor Law 14/2025)', () => {
 
 describe('leave balance', () => {
   const joinDate = day('2023-02-01');
+  const today = day('2026-11-21');
 
   it('deducts annual and casual leave, ignores rejected ones and tracks sick leave separately', () => {
     const balance = computeBalance({
       joinDate,
       year: 2026,
       policy,
+      today,
       leaves: [
         leave(
           LeaveType.ANNUAL,
@@ -121,6 +123,7 @@ describe('leave balance', () => {
       pending: 1,
       remaining: 15,
       sickTaken: 2,
+      annualAvailable: true,
       casual: { limit: 7, taken: 0, pending: 1, remaining: 6 },
     });
     expect(balance.annualAvailableFrom.startsWith('2023-08-01')).toBe(true);
@@ -131,12 +134,28 @@ describe('leave balance', () => {
       leave(LeaveType.ANNUAL, LeaveStatus.APPROVED, '2026-12-30', '2027-01-04'),
     ];
 
-    expect(computeBalance({ joinDate, year: 2026, leaves, policy }).taken).toBe(
-      2,
-    );
-    expect(computeBalance({ joinDate, year: 2027, leaves, policy }).taken).toBe(
-      2,
-    );
+    expect(
+      computeBalance({ joinDate, year: 2026, leaves, policy, today }).taken,
+    ).toBe(2);
+    expect(
+      computeBalance({ joinDate, year: 2027, leaves, policy, today }).taken,
+    ).toBe(2);
+  });
+
+  it('reports whether annual leave is available yet', () => {
+    const hired = day('2026-09-01');
+    const availability = (date: string) =>
+      computeBalance({
+        joinDate: hired,
+        year: 2026,
+        leaves: [],
+        policy,
+        today: day(date),
+      }).annualAvailable;
+
+    expect(availability('2026-11-21')).toBe(false);
+    expect(availability('2027-02-28')).toBe(false);
+    expect(availability('2027-03-01')).toBe(true);
   });
 });
 

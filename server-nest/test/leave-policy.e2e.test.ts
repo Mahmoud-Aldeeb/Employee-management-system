@@ -59,6 +59,7 @@ describe('Leave policy', () => {
     expect(res.body.remaining).toBe(res.body.entitlement);
     expect(res.body.casual).toMatchObject({ limit: 7, remaining: 7 });
     expect(res.body.annualAvailableFrom).toEqual(expect.any(String));
+    expect(res.body.annualAvailable).toBe(true);
   });
 
   it('has no balance for an account without an employee record', async () => {
@@ -114,6 +115,8 @@ describe('Leave policy', () => {
 
   it('makes annual leave available only after six months of service', async () => {
     const annual = await book(newbie, 'ANNUAL', leaveWindow(30, 1));
+    const balance = await newbie.get('/api/leave/balance');
+    expect(balance.body.annualAvailable).toBe(false);
     expect(annual.status).toBe(400);
     expect(annual.body.error).toContain(
       'becomes available after 6 months of service',

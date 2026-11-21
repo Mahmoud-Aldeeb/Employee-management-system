@@ -36,6 +36,7 @@ export class LeaveBalanceService {
       year,
       leaves,
       policy: this.policy,
+      today: cairoDay(),
     });
   }
 
