@@ -34,6 +34,7 @@ const adminData = {
       startDate: '2026-12-01T00:00:00.000Z',
       endDate: '2026-12-03T00:00:00.000Z',
       reason: 'Family trip',
+      days: 3,
       employeeName: 'Salma Farouk',
       department: 'Design',
     },
@@ -65,7 +66,17 @@ const employeeData = {
   lateThisMonth: 2,
   pendingLeaves: 1,
   todayRecord: null,
-  leaveDaysThisYear: { SICK: 1, CASUAL: 0, ANNUAL: 5 },
+  leaveBalance: {
+    year: 2026,
+    tier: 'standard',
+    entitlement: 21,
+    taken: 3,
+    pending: 1,
+    remaining: 17,
+    casual: { limit: 7, taken: 1, pending: 0, remaining: 6 },
+    sickTaken: 2,
+    annualAvailableFrom: '2023-08-01T00:00:00.000Z',
+  },
   upcomingLeave: {
     type: 'CASUAL',
     startDate: '2026-12-06T00:00:00.000Z',
@@ -98,7 +109,7 @@ describe('DashboardView for admins', () => {
     const approvals = await screen.findByRole('region', { name: 'Pending approvals' });
 
     expect(within(approvals).getByText('Salma Farouk')).toBeInTheDocument();
-    expect(within(approvals).getByText('Annual leave · Dec 01 - Dec 03, 2026')).toBeInTheDocument();
+    expect(within(approvals).getByText('Annual leave · Dec 01 - Dec 03, 2026 · 3 days')).toBeInTheDocument();
     expect(within(approvals).getByText('Family trip')).toBeInTheDocument();
   });
 
@@ -154,15 +165,15 @@ describe('DashboardView for employees', () => {
     expect(screen.getByText('October 2026')).toBeInTheDocument();
   });
 
-  it('summarises the leave taken this year and the next leave', async () => {
+  it('shows the leave balance and the next leave', async () => {
     server.use(dashboard(employeeData));
     renderWithClient(<DashboardView />);
 
-    const summary = await screen.findByRole('region', { name: 'Leave this year' });
+    const balance = await screen.findByRole('region', { name: 'Leave balance' });
 
-    expect(within(summary).getByText('5 days')).toBeInTheDocument();
-    expect(within(summary).getByText('1 day')).toBeInTheDocument();
-    expect(within(summary).getByText('Casual leave · Dec 06 - Dec 07, 2026')).toBeInTheDocument();
+    expect(within(balance).getByText('of 21 days left')).toBeInTheDocument();
+    expect(within(balance).getByText('6 of 7')).toBeInTheDocument();
+    expect(within(balance).getByText('Casual leave · Dec 06 - Dec 07, 2026')).toBeInTheDocument();
   });
 
   it('lets the employee clock in from the dashboard', async () => {

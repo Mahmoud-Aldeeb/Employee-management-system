@@ -76,3 +76,18 @@ export async function createEmployeeViaApi(
   });
   expect(response.status(), `could not create ${payload.email}`).toBe(201);
 }
+
+export function leaveWindow(minDaysAhead = 3, workingDays = 2) {
+  const cursor = new Date(`${futureDate(minDaysAhead)}T00:00:00.000Z`);
+  while ([5, 6].includes(cursor.getUTCDay()))
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+
+  const start = cursor.toISOString().slice(0, 10);
+  let counted = 1;
+  while (counted < workingDays) {
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    if (![5, 6].includes(cursor.getUTCDay())) counted += 1;
+  }
+
+  return { start, end: cursor.toISOString().slice(0, 10) };
+}

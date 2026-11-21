@@ -56,7 +56,8 @@ export default function PendingApprovals({ items, total, className }: PendingApp
               <div className="min-w-0">
                 <p className="truncate font-medium text-slate-900">{item.employeeName}</p>
                 <p className="text-sm text-slate-500">
-                  {LEAVE_TYPE_LABELS[item.type]} · {formatDayRange(item.startDate, item.endDate)}
+                  {LEAVE_TYPE_LABELS[item.type]} · {formatDayRange(item.startDate, item.endDate)} · {item.days}{' '}
+                  {item.days === 1 ? 'day' : 'days'}
                 </p>
                 <p className="truncate text-xs text-slate-400" title={item.reason}>
                   {item.reason}

@@ -61,6 +61,7 @@ export interface LeaveApplication {
   status: LeaveStatus;
   employee?: Employee | null;
   createdAt: string;
+  days?: number;
 }
 
 export interface Payslip {
@@ -85,6 +86,7 @@ export interface PendingLeaveItem {
   reason: string;
   employeeName: string;
   department: string | null;
+  days: number;
 }
 
 export interface WhosOutItem {
@@ -137,7 +139,7 @@ export interface EmployeeDashboardData {
   lateThisMonth: number;
   pendingLeaves: number;
   todayRecord: AttendanceRecord | null;
-  leaveDaysThisYear: Record<LeaveType, number>;
+  leaveBalance: LeaveBalance;
   upcomingLeave: UpcomingLeave | null;
 }
 
@@ -183,3 +185,17 @@ export type EmployeeSummary = Omit<
   Employee,
   "basicSalary" | "allowances" | "deductions"
 >;
+
+export type LeaveTier = "first-year" | "standard" | "senior";
+
+export interface LeaveBalance {
+  year: number;
+  tier: LeaveTier | null;
+  entitlement: number;
+  taken: number;
+  pending: number;
+  remaining: number;
+  casual: { limit: number; taken: number; pending: number; remaining: number };
+  sickTaken: number;
+  annualAvailableFrom: string;
+}

@@ -3,7 +3,7 @@ import { ADMIN } from "./constants";
 import {
   createEmployeeViaApi,
   employeePayload,
-  futureDate,
+  leaveWindow,
   openSession,
   uniqueEmail,
 } from "./helpers";
@@ -56,6 +56,29 @@ test("sara clocks in and out", async () => {
   ).toHaveCount(1);
 });
 
+test("sara sees her leave balance and the casual leave rule is enforced", async () => {
+  const { page } = saraSession;
+  await page.goto("/leave");
+
+  const balance = page.getByRole("region", { name: "Leave balance" });
+  await expect(balance).toBeVisible();
+  await expect(balance.getByText("7 of 7")).toBeVisible();
+
+  const window = leaveWindow(10, 3);
+  await page.getByRole("button", { name: "Apply for Leave" }).click();
+  const dialog = page.getByRole("dialog", { name: "Apply for Leave" });
+  await dialog.getByLabel("Leave Type").selectOption("CASUAL");
+  await dialog.getByLabel("From").fill(window.start);
+  await dialog.getByLabel("To").fill(window.end);
+  await dialog.getByLabel("Reason").fill("Too many casual days");
+  await dialog.getByRole("button", { name: "Submit" }).click();
+
+  await expect(
+    page.getByText("limited to 2 working days per request"),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+});
+
 test("sara applies for leave and sees validation feedback first", async () => {
   const { page } = saraSession;
   await page.goto("/leave");
@@ -71,8 +94,8 @@ test("sara applies for leave and sees validation feedback first", async () => {
   ).toBeVisible();
 
   await dialog.getByLabel("Leave Type").selectOption("ANNUAL");
-  await dialog.getByLabel("From").fill(futureDate(3));
-  await dialog.getByLabel("To").fill(futureDate(4));
+  await dialog.getByLabel("From").fill(leaveWindow().start);
+  await dialog.getByLabel("To").fill(leaveWindow().end);
   await dialog.getByRole("button", { name: "Submit" }).click();
 
   await expect(dialog).toBeHidden();

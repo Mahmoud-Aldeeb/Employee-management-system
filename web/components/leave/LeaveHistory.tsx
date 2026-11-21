@@ -1,10 +1,9 @@
 'use client';
 
-import { format } from 'date-fns';
 import { CheckIcon, Loader2Icon, XIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useUpdateLeaveStatus } from '@/hooks/use-leaves';
-import { dayFromKey } from '@/lib/dates';
+import { formatDayRange } from '@/lib/dates';
 import { getErrorMessage } from '@/lib/errors';
 import type { LeaveApplication, LeaveStatus } from '@/types';
 
@@ -67,8 +66,12 @@ export default function LeaveHistory({ leaves, isAdmin }: LeaveHistoryProps) {
                   </td>
                   <td className="text-xs text-slate-500">
                     <span className="whitespace-nowrap">
-                      {format(dayFromKey(leave.startDate), 'MMM dd')} -{' '}
-                      {format(dayFromKey(leave.endDate), 'MMM dd, yyyy')}
+                      {formatDayRange(leave.startDate, leave.endDate)}
+                      {leave.days !== undefined && (
+                        <span className="ml-1 text-slate-400">
+                          · {leave.days} {leave.days === 1 ? 'day' : 'days'}
+                        </span>
+                      )}
                     </span>
                     <p className="mt-1 line-clamp-2 md:hidden">{leave.reason}</p>
                   </td>

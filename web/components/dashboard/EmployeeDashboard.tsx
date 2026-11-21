@@ -6,7 +6,7 @@ import StatCard from '@/components/ui/StatCard';
 import { COLORS } from '@/lib/chart-colors';
 import type { EmployeeDashboardData } from '@/types';
 import LatestPayslipCard from './LatestPayslipCard';
-import LeaveSummary from './LeaveSummary';
+import LeaveBalanceCard from '@/components/leave/LeaveBalanceCard';
 
 export default function EmployeeDashboard({ data }: { data: EmployeeDashboardData }) {
   const { employee } = data;
@@ -54,7 +54,7 @@ export default function EmployeeDashboard({ data }: { data: EmployeeDashboardDat
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         <SalaryBreakdown salary={data.salary} />
-        <LeaveSummary daysTaken={data.leaveDaysThisYear} upcoming={data.upcomingLeave} />
+        <LeaveBalanceCard balance={data.leaveBalance} upcoming={data.upcomingLeave} />
         <LatestPayslipCard payslip={data.latestPayslip} />
       </div>
 

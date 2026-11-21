@@ -3,12 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon, SendIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { z } from 'zod';
 import Field from '@/components/ui/Field';
 import Modal from '@/components/ui/Modal';
-import { useCreateLeave } from '@/hooks/use-leaves';
+import { useCreateLeave, useLeaveBalance } from '@/hooks/use-leaves';
 import { addDaysToKey, cairoDateKey } from '@/lib/dates';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -42,16 +42,19 @@ export default function ApplyLeaveModal({ open, onClose }: ApplyLeaveModalProps)
   const [minDate] = useState(() => addDaysToKey(cairoDateKey(), 1));
   const schema = useMemo(() => createLeaveSchema(minDate), [minDate]);
   const createLeave = useCreateLeave();
+  const { data: balance } = useLeaveBalance(open);
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<LeaveValues>({
     resolver: zodResolver(schema),
     defaultValues: { type: 'SICK', startDate: '', endDate: '', reason: '' },
   });
+  const type = useWatch({ control, name: 'type' });
 
   const handleClose = () => {
     reset();
@@ -77,6 +80,13 @@ export default function ApplyLeaveModal({ open, onClose }: ApplyLeaveModalProps)
       maxWidth="max-w-lg"
     >
       <form onSubmit={onSubmit} noValidate className="space-y-5 text-sm text-slate-700">
+        {balance && (
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            {balance.remaining} annual days left in {balance.year} · {balance.casual.remaining} of{' '}
+            {balance.casual.limit} casual days left
+          </p>
+        )}
+
         <Field label="Leave Type" htmlFor="type" error={errors.type?.message}>
           <select id="type" {...register('type')}>
             <option value="SICK">Sick Leave</option>
@@ -84,6 +94,13 @@ export default function ApplyLeaveModal({ open, onClose }: ApplyLeaveModalProps)
             <option value="ANNUAL">Annual Leave</option>
           </select>
         </Field>
+
+        {type === 'CASUAL' && (
+          <p className="text-xs text-slate-400">
+            Casual leave is limited to 2 working days per request and is deducted from your annual
+            balance.
+          </p>
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="From" htmlFor="startDate" error={errors.startDate?.message}>

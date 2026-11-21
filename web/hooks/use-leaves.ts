@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { LeaveStatus, LeaveType, LeavesResponse } from "@/types";
+import type {
+  LeaveBalance,
+  LeaveStatus,
+  LeaveType,
+  LeavesResponse,
+} from "@/types";
 import { invalidateAppData } from "@/lib/invalidate";
 
 export const LEAVES_KEY = ["leaves"] as const;
@@ -41,5 +46,16 @@ export function useUpdateLeaveStatus() {
       await api.patch(`/leave/${id}`, { status });
     },
     onSuccess: () => invalidateAppData(queryClient),
+  });
+}
+
+export function useLeaveBalance(enabled = true) {
+  return useQuery({
+    queryKey: ["leave", "balance"],
+    queryFn: async () => {
+      const { data } = await api.get<LeaveBalance>("/leave/balance");
+      return data;
+    },
+    enabled,
   });
 }
