@@ -132,6 +132,18 @@ Open http://localhost:3000 and use the demo buttons. MongoDB runs as a single-no
 | web         | `API_URL`                                                          | NestJS API origin used by the `/api` rewrite                               |
 | server-nest | DEMO_MODE                                                          | Enables the demo accounts, nightly demo reset and disables outgoing email. |
 
+## Leave policy (Egyptian Labor Law No. 14 of 2025)
+
+| Rule         | Implementation                                                                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Annual leave | 15 days in the first year, 21 days afterwards, 30 days after 10 years of service; available after 6 months of service                                                       |
+| Casual leave | 7 days a year, at most 2 working days per request, deducted from the annual balance                                                                                         |
+| Sick leave   | Tracked and not capped (pay is governed by social insurance)                                                                                                                |
+| Working days | Sunday to Thursday; Friday and Saturday never consume leave                                                                                                                 |
+| Booking      | Requests are refused when they overlap another request, exceed the balance or break a rule above; pending requests reserve days; reopening a rejected request is re-checked |
+
+Simplifications: balances are calculated per calendar year without carry-over, public holidays are not excluded, and the age-50 and disability tiers are not modeled. All numbers live in `server-nest/src/leave/policy/leave-policy.ts`.
+
 ## Repository structure
 
 ```text
