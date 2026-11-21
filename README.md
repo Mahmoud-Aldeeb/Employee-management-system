@@ -1,13 +1,25 @@
 # Employee Management System
 
-![Server CI](https://github.com/Mahmoud-Aldeeb/Employee-management-system/actions/workflows/server-ci.yml)
-![Web CI](https://github.com/Mahmoud-Aldeeb/Employee-management-system/actions/workflows/web-ci.yml)
+[![Server CI](https://github.com/Mahmoud-Aldeeb/Employee-management-system/actions/workflows/server-ci.yml/badge.svg)](https://github.com/Mahmoud-Aldeeb/Employee-management-system/actions/workflows/server-ci.yml)
+[![Web CI](https://github.com/Mahmoud-Aldeeb/Employee-management-system/actions/workflows/web-ci.yml/badge.svg)](https://github.com/Mahmoud-Aldeeb/Employee-management-system/actions/workflows/web-ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=flat&logo=vercel&logoColor=white)](https://employee-management-system-rust-seven.vercel.app/login)
 
 A full-stack HR portal with separate **Admin** and **Employee** experiences: employees, attendance, leave approvals, payslips and analytics.
 
-Live demo: [<web URL>](https://employee-management-system-rust-seven.vercel.app/login)
+### Built With
 
-<!-- Add 3-4 screenshots here: docs/screenshots/dashboard.png, employees.png, attendance.png, mobile.png -->
+[![Tech Stack](https://skillicons.dev/icons?i=nextjs,react,nestjs,ts,tailwind,mongodb,docker,vitest,githubactions,vercel)](https://skillicons.dev)
+
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=flat-square&logo=react-query&logoColor=white)
+![React Hook Form](https://img.shields.io/badge/React_Hook_Form-EC5990?style=flat-square&logo=reacthookform&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-3E67B1?style=flat-square&logo=zod&logoColor=white)
+![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat-square&logo=mongoose&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT_Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
+![Inngest](https://img.shields.io/badge/Inngest-111827?style=flat-square)
+![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger_Docs-85EA2D?style=flat-square&logo=swagger&logoColor=black)
+
+🔗 **[Open Live Demo](https://employee-management-system-rust-seven.vercel.app/login)**
 
 ## Why this project
 
