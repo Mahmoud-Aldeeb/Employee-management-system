@@ -6,7 +6,7 @@ import { LeaveType } from '../src/common/enums/leave-type.enum.js';
 import { Role } from '../src/common/enums/role.enum.js';
 import { cairoDay } from '../src/common/utils/cairo-time.js';
 import { LeaveApplication } from '../src/leave/schemas/leave-application.schema.js';
-import { dateFromNow, employeePayload } from './utils/factories.js';
+import { leaveWindow, employeePayload } from './utils/factories.js';
 import { createTestContext } from './utils/test-app.js';
 
 const ADMIN = { email: 'admin@test.local', password: 'Admin#12345' };
@@ -21,6 +21,8 @@ const OMAR = employeePayload('omar.dash@test.local', {
   department: 'Sales',
   joinDate: todayKey,
 });
+
+const SARA_LEAVE = leaveWindow();
 
 describe('Dashboard', () => {
   let ctx: Awaited<ReturnType<typeof createTestContext>>;
@@ -77,8 +79,8 @@ describe('Dashboard', () => {
     expect((await sara.post('/api/attendance')).status).toBe(200);
     const request = await sara.post('/api/leave').send({
       type: 'ANNUAL',
-      startDate: dateFromNow(3),
-      endDate: dateFromNow(4),
+      startDate: SARA_LEAVE.start,
+      endDate: SARA_LEAVE.end,
       reason: 'Family trip',
     });
     expect(request.status).toBe(201);
@@ -131,11 +133,16 @@ describe('Dashboard', () => {
     expect(body.latestPayslip).toBeNull();
   });
 
-  it('counts approved leave days and finds the next leave', async () => {
+  it('describes the employee leave balance and finds the next leave', async () => {
     const { body } = await omar.get('/api/dashboard');
 
     expect(body.todayRecord).toBeNull();
-    expect(body.leaveDaysThisYear).toEqual({ SICK: 0, CASUAL: 1, ANNUAL: 0 });
+    expect(body.leaveBalance).toMatchObject({
+      tier: 'first-year',
+      entitlement: 15,
+      sickTaken: 0,
+    });
+    expect(body.leaveBalance.casual.limit).toBe(7);
     expect(body.upcomingLeave).toMatchObject({ type: 'CASUAL' });
     expect(body.upcomingLeave.startDate.startsWith(todayKey)).toBe(true);
   });
@@ -148,7 +155,9 @@ describe('Dashboard', () => {
 
     const { body } = await sara.get('/api/dashboard');
 
-    expect(body.upcomingLeave.startDate.startsWith(dateFromNow(3))).toBe(true);
+    expect(body.upcomingLeave.startDate.startsWith(SARA_LEAVE.start)).toBe(
+      true,
+    );
     expect(body.pendingLeaves).toBe(0);
   });
 });

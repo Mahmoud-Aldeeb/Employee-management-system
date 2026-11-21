@@ -20,6 +20,7 @@ import {
   type TrendRow,
 } from './dashboard.metrics.js';
 import type { AdminDashboard } from './dashboard.types.js';
+import { LeaveBalanceService } from '../leave/leave-balance.service.js';
 
 const TREND_DAYS = 7;
 const PENDING_LIMIT = 5;
@@ -34,6 +35,7 @@ export class AdminDashboardService {
     @InjectModel(LeaveApplication.name)
     private readonly leaveModel: Model<LeaveApplication>,
     @InjectModel(Salary.name) private readonly salaryModel: Model<Salary>,
+    private readonly leaveBalances: LeaveBalanceService,
   ) {}
 
   async getDashboard(): Promise<AdminDashboard> {
@@ -130,7 +132,9 @@ export class AdminDashboardService {
       monthlyPayroll: sumNetSalaries(salaries),
       attendanceTrend: buildAttendanceTrend(trendRows, today, TREND_DAYS),
       departments,
-      pendingRequests: pending.map(toPendingItem),
+      pendingRequests: pending.map((leave) =>
+        toPendingItem(leave, this.leaveBalances.workingDays(leave)),
+      ),
       whosOut: outToday.map(toWhosOutItem),
     };
   }

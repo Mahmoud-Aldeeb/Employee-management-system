@@ -7,6 +7,7 @@ export interface PendingLeaveItem {
   startDate: Date;
   endDate: Date;
   reason: string;
+  days: number;
   employeeName: string;
   department: string | null;
 }

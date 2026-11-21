@@ -83,17 +83,14 @@ export function sumNetSalaries(
   );
 }
 
-export function inclusiveDays(start: Date, end: Date) {
-  return Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1;
-}
-
-export function toPendingItem(leave: LeaveRow): PendingLeaveItem {
+export function toPendingItem(leave: LeaveRow, days: number): PendingLeaveItem {
   return {
     id: String(leave._id),
     type: leave.type,
     startDate: leave.startDate,
     endDate: leave.endDate,
     reason: leave.reason,
+    days,
     employeeName: fullName(leave.employeeId),
     department: leave.employeeId?.department ?? null,
   };

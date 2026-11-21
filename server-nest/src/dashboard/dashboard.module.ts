@@ -19,6 +19,7 @@ import { AdminDashboardService } from './admin-dashboard.service.js';
 import { DashboardController } from './dashboard.controller.js';
 import { DashboardService } from './dashboard.service.js';
 import { EmployeeDashboardService } from './employee-dashboard.service.js';
+import { LeaveModule } from '../leave/leave.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { EmployeeDashboardService } from './employee-dashboard.service.js';
       { name: Salary.name, schema: SalarySchema },
     ]),
     SalariesModule,
+    LeaveModule,
   ],
   controllers: [DashboardController],
   providers: [

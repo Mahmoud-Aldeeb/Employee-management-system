@@ -4,14 +4,13 @@ import type { Model } from 'mongoose';
 import { Attendance } from '../attendance/schemas/attendance.schema.js';
 import { AttendanceStatus } from '../common/enums/attendance-status.enum.js';
 import { LeaveStatus } from '../common/enums/leave-status.enum.js';
-import { LeaveType } from '../common/enums/leave-type.enum.js';
 import { Role } from '../common/enums/role.enum.js';
 import { cairoDay, cairoMonthRange } from '../common/utils/cairo-time.js';
 import { Employee } from '../employees/schemas/employee.schema.js';
+import { LeaveBalanceService } from '../leave/leave-balance.service.js';
 import { LeaveApplication } from '../leave/schemas/leave-application.schema.js';
 import { Payslip } from '../payslips/schemas/payslip.schema.js';
 import { SalariesService } from '../salaries/salaries.service.js';
-import { inclusiveDays } from './dashboard.metrics.js';
 
 @Injectable()
 export class EmployeeDashboardService {
@@ -23,6 +22,7 @@ export class EmployeeDashboardService {
     private readonly leaveModel: Model<LeaveApplication>,
     @InjectModel(Payslip.name) private readonly payslipModel: Model<Payslip>,
     private readonly salaries: SalariesService,
+    private readonly leaveBalances: LeaveBalanceService,
   ) {}
 
   async getDashboard(userId: string) {
@@ -31,17 +31,15 @@ export class EmployeeDashboardService {
 
     const today = cairoDay();
     const { start: monthStart, end: monthEnd } = cairoMonthRange();
-    const yearStart = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
-    const yearEnd = new Date(Date.UTC(today.getUTCFullYear() + 1, 0, 1));
 
     const [
       monthRecords,
       todayRecord,
       pendingLeaves,
-      approvedThisYear,
       upcomingLeave,
       payslip,
       salary,
+      leaveBalance,
     ] = await Promise.all([
       this.attendanceModel
         .find({
@@ -60,15 +58,6 @@ export class EmployeeDashboardService {
         status: LeaveStatus.PENDING,
       }),
       this.leaveModel
-        .find({
-          employeeId: employee._id,
-          status: LeaveStatus.APPROVED,
-          startDate: { $gte: yearStart, $lt: yearEnd },
-        })
-        .select('type startDate endDate')
-        .lean()
-        .exec(),
-      this.leaveModel
         .findOne({
           employeeId: employee._id,
           status: LeaveStatus.APPROVED,
@@ -84,19 +73,8 @@ export class EmployeeDashboardService {
         .lean()
         .exec(),
       this.salaries.getForEmployee(employee._id),
+      this.leaveBalances.getBalance(employee),
     ]);
-
-    const leaveDaysThisYear: Record<LeaveType, number> = {
-      [LeaveType.SICK]: 0,
-      [LeaveType.CASUAL]: 0,
-      [LeaveType.ANNUAL]: 0,
-    };
-    for (const leave of approvedThisYear) {
-      leaveDaysThisYear[leave.type] += inclusiveDays(
-        leave.startDate,
-        leave.endDate,
-      );
-    }
 
     return {
       role: Role.EMPLOYEE,
@@ -109,7 +87,7 @@ export class EmployeeDashboardService {
       ).length,
       pendingLeaves,
       todayRecord,
-      leaveDaysThisYear,
+      leaveBalance,
       upcomingLeave: upcomingLeave
         ? {
             type: upcomingLeave.type,

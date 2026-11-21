@@ -3,7 +3,6 @@ import {
   buildAttendanceTrend,
   countByDepartment,
   fullName,
-  inclusiveDays,
   sumNetSalaries,
   toPendingItem,
   toWhosOutItem,
@@ -56,13 +55,6 @@ describe('dashboard metrics', () => {
     expect(sumNetSalaries([])).toBe(0);
   });
 
-  it('counts leave days inclusively', () => {
-    const day = new Date('2026-12-01T00:00:00Z');
-
-    expect(inclusiveDays(day, day)).toBe(1);
-    expect(inclusiveDays(day, new Date('2026-12-03T00:00:00Z'))).toBe(3);
-  });
-
   it('maps leave rows for the pending list and the who is out list', () => {
     const row = {
       _id: 'abc',
@@ -73,17 +65,18 @@ describe('dashboard metrics', () => {
       employeeId: { firstName: 'Sara', lastName: 'Ali', department: 'Design' },
     };
 
-    expect(toPendingItem(row)).toMatchObject({
+    expect(toPendingItem(row, 3)).toMatchObject({
       id: 'abc',
       employeeName: 'Sara Ali',
       department: 'Design',
       reason: 'Trip',
+      days: 3,
     });
     expect(toWhosOutItem(row)).toMatchObject({
       id: 'abc',
       employeeName: 'Sara Ali',
     });
-    expect(toPendingItem({ ...row, employeeId: null }).employeeName).toBe(
+    expect(toPendingItem({ ...row, employeeId: null }, 1).employeeName).toBe(
       'Unknown employee',
     );
     expect(fullName(null)).toBe('Unknown employee');
