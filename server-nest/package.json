@@ -22,7 +22,8 @@
     "test:e2e:watch": "vitest --config vitest.config.e2e.ts",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "seed": "nest build && node dist/seed.js",
-    "seed:reset": "nest build && node dist/seed.js --reset"
+    "seed:reset": "nest build && node dist/seed.js --reset",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
