@@ -24,4 +24,8 @@ async function bootstrap() {
 
   await app.listen(config.get<number>('PORT') ?? 4000);
 }
-bootstrap();
+
+bootstrap().catch((error: unknown) => {
+  console.error('Failed to start the API', error);
+  process.exit(1);
+});
