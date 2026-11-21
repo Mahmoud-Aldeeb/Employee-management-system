@@ -1,4 +1,4 @@
-FROM node:22-slim
+FROM node:24-slim
 WORKDIR /app
 ARG API_URL
 ENV API_URL=${API_URL}
