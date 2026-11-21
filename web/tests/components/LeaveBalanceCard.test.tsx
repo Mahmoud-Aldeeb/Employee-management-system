@@ -13,6 +13,7 @@ const balance: LeaveBalance = {
   casual: { limit: 7, taken: 1, pending: 0, remaining: 6 },
   sickTaken: 2,
   annualAvailableFrom: '2023-08-01T00:00:00.000Z',
+  annualAvailable: true,
 };
 
 describe('LeaveBalanceCard', () => {
@@ -43,12 +44,23 @@ describe('LeaveBalanceCard', () => {
   it('explains when annual leave is not available yet', () => {
     render(
       <LeaveBalanceCard
-        balance={{ ...balance, tier: 'first-year', annualAvailableFrom: '2999-01-15T00:00:00.000Z' }}
+        balance={{
+          ...balance,
+          tier: 'first-year',
+          annualAvailable: false,
+          annualAvailableFrom: '2999-01-15T00:00:00.000Z',
+        }}
       />,
     );
 
     expect(screen.getByText('2026 · First year')).toBeInTheDocument();
     expect(screen.getByText(/becomes available from Jan 15, 2999/)).toBeInTheDocument();
+  });
+
+  it('hides the availability notice once annual leave is available', () => {
+    render(<LeaveBalanceCard balance={balance} />);
+
+    expect(screen.queryByText(/becomes available from/)).not.toBeInTheDocument();
   });
 
   it('shows the next approved leave only when asked to', () => {

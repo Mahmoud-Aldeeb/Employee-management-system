@@ -1,12 +1,9 @@
-'use client';
-
-import { useSyncExternalStore } from 'react';
+import { format } from 'date-fns';
 import { PalmtreeIcon } from 'lucide-react';
 import DashboardSection from '@/components/dashboard/DashboardSection';
 import { LEAVE_TYPE_LABELS } from '@/lib/constants';
-import { formatDayRange } from '@/lib/dates';
+import { dayFromKey, formatDayRange } from '@/lib/dates';
 import type { LeaveBalance, LeaveTier, UpcomingLeave } from '@/types';
-import { format } from 'date-fns';
 
 const TIER_LABELS: Record<LeaveTier, string> = {
   'first-year': 'First year',
@@ -22,20 +19,10 @@ interface LeaveBalanceCardProps {
   className?: string;
 }
 
-const emptySubscribe = () => () => { };
-const getServerNow = () => 0;
-const getClientNow = () => Math.floor(Date.now() / 60_000) * 60_000;
-
 export default function LeaveBalanceCard({ balance, upcoming, className }: LeaveBalanceCardProps) {
-
-  const now = useSyncExternalStore(emptySubscribe, getClientNow, getServerNow);
-
   const used = balance.taken + balance.pending;
   const percent =
     balance.entitlement > 0 ? Math.min(100, Math.round((used / balance.entitlement) * 100)) : 0;
-  const availableFrom = new Date(balance.annualAvailableFrom);
-  const notYetAvailable = now > 0 && availableFrom.getTime() > now;
-
 
   const rows = [
     { label: 'Taken', value: days(balance.taken) },
@@ -77,9 +64,10 @@ export default function LeaveBalanceCard({ balance, upcoming, className }: Leave
 
       <p className="mt-3 text-xs text-slate-400">Casual leave is deducted from your annual balance.</p>
 
-      {notYetAvailable && (
+      {!balance.annualAvailable && (
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          Annual leave becomes available from {format(availableFrom, 'MMM dd, yyyy')}.
+          Annual leave becomes available from{' '}
+          {format(dayFromKey(balance.annualAvailableFrom), 'MMM dd, yyyy')}.
         </p>
       )}
 

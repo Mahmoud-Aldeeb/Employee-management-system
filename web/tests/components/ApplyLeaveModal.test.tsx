@@ -23,6 +23,7 @@ const balance = {
   casual: { limit: 7, taken: 1, pending: 0, remaining: 6 },
   sickTaken: 0,
   annualAvailableFrom: '2023-08-01T00:00:00.000Z',
+  annualAvailable: true,
 };
 
 function renderModal() {

@@ -198,4 +198,5 @@ export interface LeaveBalance {
   casual: { limit: number; taken: number; pending: number; remaining: number };
   sickTaken: number;
   annualAvailableFrom: string;
+  annualAvailable: boolean;
 }
