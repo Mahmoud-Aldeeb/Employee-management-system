@@ -23,3 +23,20 @@ export function dateFromNow(days: number) {
     .toISOString()
     .slice(0, 10);
 }
+
+const WEEKEND_DAYS = [5, 6];
+
+export function leaveWindow(minDaysAhead = 3, workingDays = 2) {
+  const cursor = new Date(`${dateFromNow(minDaysAhead)}T00:00:00.000Z`);
+  while (WEEKEND_DAYS.includes(cursor.getUTCDay()))
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+
+  const start = cursor.toISOString().slice(0, 10);
+  let counted = 1;
+  while (counted < workingDays) {
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    if (!WEEKEND_DAYS.includes(cursor.getUTCDay())) counted += 1;
+  }
+
+  return { start, end: cursor.toISOString().slice(0, 10) };
+}

@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Role } from '../src/common/enums/role.enum.js';
-import { dateFromNow, employeePayload } from './utils/factories.js';
+import {
+  dateFromNow,
+  employeePayload,
+  leaveWindow,
+} from './utils/factories.js';
 import { createTestContext } from './utils/test-app.js';
 
 const ADMIN = { email: 'admin@test.local', password: 'Admin#12345' };
@@ -69,10 +73,11 @@ describe('Attendance and leave', () => {
 
   describe('leave', () => {
     it('creates a leave request and schedules the reminder', async () => {
+      const window = leaveWindow();
       const res = await sara.post('/api/leave').send({
         type: 'ANNUAL',
-        startDate: dateFromNow(3),
-        endDate: dateFromNow(4),
+        startDate: window.start,
+        endDate: window.end,
         reason: 'Family trip',
       });
 

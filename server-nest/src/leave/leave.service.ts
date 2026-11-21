@@ -15,6 +15,8 @@ import { EmployeesService } from '../employees/employees.service.js';
 import type { Employee } from '../employees/schemas/employee.schema.js';
 import { InngestService } from '../inngest/inngest.service.js';
 import { CreateLeaveDto } from './dto/create-leave.dto.js';
+import { LeaveBalanceService } from './leave-balance.service.js';
+import { startOfUtcDay } from './policy/leave-calendar.js';
 import { LeaveApplication } from './schemas/leave-application.schema.js';
 
 type PopulatedEmployee = Employee & { _id: unknown };
@@ -27,6 +29,7 @@ export class LeaveService {
     @InjectModel(LeaveApplication.name)
     private readonly leaveModel: Model<LeaveApplication>,
     private readonly employees: EmployeesService,
+    private readonly balances: LeaveBalanceService,
     private readonly inngest: InngestService,
   ) {}
 
@@ -39,8 +42,8 @@ export class LeaveService {
       );
     }
 
-    const startDate = new Date(dto.startDate);
-    const endDate = new Date(dto.endDate);
+    const startDate = startOfUtcDay(new Date(dto.startDate));
+    const endDate = startOfUtcDay(new Date(dto.endDate));
     const today = cairoDay();
 
     if (startDate <= today || endDate <= today) {
@@ -49,6 +52,12 @@ export class LeaveService {
     if (endDate < startDate) {
       throw new BadRequestException('End date cannot be before start date');
     }
+
+    await this.balances.assertCanBook(employee, {
+      type: dto.type,
+      startDate,
+      endDate,
+    });
 
     const leave = await this.leaveModel.create({
       employeeId: employee._id,
@@ -84,6 +93,7 @@ export class LeaveService {
         id: String(leave._id),
         employee: leave.employeeId,
         employeeId: leave.employeeId ? String(leave.employeeId._id) : undefined,
+        days: this.balances.workingDays(leave),
       }));
       return { success: true, data };
     }
@@ -94,19 +104,51 @@ export class LeaveService {
     const leaves = await this.leaveModel
       .find({ employeeId: employee._id })
       .sort({ createdAt: -1 })
+      .lean()
       .exec();
 
     return {
-      data: leaves,
+      data: leaves.map((leave) => ({
+        ...leave,
+        id: String(leave._id),
+        days: this.balances.workingDays(leave),
+      })),
       employee: { ...employee.toObject(), id: String(employee._id) },
     };
   }
 
+  async getBalance(userId: string, year?: number) {
+    const employee = await this.employees.findByUserId(userId);
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    return this.balances.getBalance(employee, year);
+  }
+
   async updateStatus(id: string, status: LeaveStatus) {
-    const leave = await this.leaveModel
-      .findByIdAndUpdate(id, { status }, { returnDocument: 'after' })
-      .exec();
+    const leave = await this.leaveModel.findById(id).exec();
     if (!leave) throw new NotFoundException('Leave application not found');
+
+    if (
+      leave.status === LeaveStatus.REJECTED &&
+      status !== LeaveStatus.REJECTED
+    ) {
+      const employee = await this.employees.findById(String(leave.employeeId));
+      if (employee) {
+        await this.balances.assertCanBook(
+          employee,
+          {
+            type: leave.type,
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+          },
+          id,
+        );
+      }
+    }
+
+    leave.status = status;
+    await leave.save();
+
     return { success: true, data: leave };
   }
 }
