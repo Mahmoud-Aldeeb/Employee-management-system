@@ -200,3 +200,28 @@ export interface LeaveBalance {
   annualAvailableFrom: string;
   annualAvailable: boolean;
 }
+
+export interface TeamCalendarEntry {
+  leaveId: string;
+  employeeId: string;
+  employeeName: string;
+  department: string | null;
+  status: LeaveStatus;
+  type: LeaveType | null;
+  isMine: boolean;
+}
+
+export interface TeamCalendarDay {
+  date: string;
+  isWeekend: boolean;
+  isToday: boolean;
+  entries: TeamCalendarEntry[];
+}
+
+export interface TeamCalendar {
+  month: string;
+  previousMonth: string;
+  nextMonth: string;
+  days: TeamCalendarDay[];
+  summary: { employeesOut: number; outToday: number; pendingLeaves: number };
+}
