@@ -72,6 +72,16 @@ export class EmployeesService {
     return this.employeeModel.findById(id).exec();
   }
 
+  async findActiveIdsByDepartment(department: string) {
+    const employees = await this.employeeModel
+      .find({ department, isDeleted: { $ne: true } })
+      .select('_id')
+      .lean()
+      .exec();
+
+    return employees.map((employee) => employee._id);
+  }
+
   async create(dto: CreateEmployeeDto) {
     const hashed = await bcrypt.hash(dto.password, 10);
     const session = await this.connection.startSession();

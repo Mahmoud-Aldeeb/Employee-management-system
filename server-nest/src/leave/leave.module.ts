@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EmployeesModule } from '../employees/employees.module.js';
 import { InngestModule } from '../inngest/inngest.module.js';
+import { TeamCalendarController } from './calendar/team-calendar.controller.js';
+import { TeamCalendarService } from './calendar/team-calendar.service.js';
 import { LeaveBalanceService } from './leave-balance.service.js';
 import { LeaveController } from './leave.controller.js';
 import { LeaveService } from './leave.service.js';
@@ -19,10 +21,11 @@ import {
     EmployeesModule,
     InngestModule,
   ],
-  controllers: [LeaveController],
+  controllers: [LeaveController, TeamCalendarController],
   providers: [
     LeaveService,
     LeaveBalanceService,
+    TeamCalendarService,
     { provide: LEAVE_POLICY, useValue: EGYPT_LEAVE_POLICY },
   ],
   exports: [LeaveBalanceService],
