@@ -20,7 +20,7 @@ describe('Sidebar', () => {
     renderSidebar(admin);
 
     expect((await screen.findAllByText('Ada Lovelace')).length).toBeGreaterThan(0);
-    for (const name of ['Dashboard', 'Employees', 'Analytics', 'Leave', 'Payslips', 'Settings']) {
+    for (const name of ['Dashboard', 'Employees', 'Analytics', 'Leave', 'Team Calendar', 'Payslips', 'Settings']) {
       expect(screen.getAllByRole('link', { name })).toHaveLength(2);
     }
     expect(screen.queryAllByRole('link', { name: 'Attendance' })).toHaveLength(0);
@@ -34,6 +34,7 @@ describe('Sidebar', () => {
     expect(screen.getAllByRole('link', { name: 'Attendance' })).toHaveLength(2);
     expect(screen.queryAllByRole('link', { name: 'Employees' })).toHaveLength(0);
     expect(screen.queryAllByRole('link', { name: 'Analytics' })).toHaveLength(0);
+    expect(screen.getAllByRole('link', { name: 'Team Calendar' })).toHaveLength(2);
   });
 
   it('logs out and returns to the login page', async () => {

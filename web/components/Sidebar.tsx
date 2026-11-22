@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  CalendarDaysIcon,
   CalendarHeartIcon,
   ChevronRightIcon,
   DollarSignIcon,
@@ -34,6 +35,7 @@ function getNavItems(role: SessionUser['role']): NavItem[] {
       ]
       : [{ name: 'Attendance', href: '/attendance', icon: CalendarHeartIcon }]),
     { name: 'Leave', href: '/leave', icon: FileSignalIcon },
+    { name: 'Team Calendar', href: '/team-calendar', icon: CalendarDaysIcon },
     { name: 'Payslips', href: '/payslips', icon: DollarSignIcon },
     { name: 'Settings', href: '/settings', icon: SettingsIcon },
   ];
