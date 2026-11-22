@@ -28,6 +28,7 @@ NestJS 12 REST API for the Employee Management System.
 | Dashboard  | `GET /api/dashboard`                                                                       | signed in                    |
 | Analytics  | `GET /api/analytics`                                                                       | admin                        |
 | Jobs       | `/api/inngest`                                                                             | Inngest                      |
+| Leave      | `GET /api/leave/balance`, `GET /api/leave/calendar?month=YYYY-MM&department=`              | employee / signed in         |
 
 ## Security
 

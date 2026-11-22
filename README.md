@@ -35,6 +35,7 @@ This is a rebuild of an earlier JavaScript MERN app. The goal was to move it to 
 - **Analytics:** attendance trend, leave breakdown, working hours and department activity
 - **Background jobs (Inngest):** automatic check-out, pending-leave reminders, daily attendance reminders by email
 - **Responsive:** tested on desktop and mobile viewports
+- **Team calendar:** a month view of who is out, with department filter for admins; employees see their own requests and the approved leave of their department without its type
 
 ## Tech stack
 
