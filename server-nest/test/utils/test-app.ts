@@ -20,10 +20,10 @@ export interface TestContextOptions {
 }
 
 export async function createTestContext(options: TestContextOptions = {}) {
-  const mongod = await MongoMemoryReplSet.create({
-    replSet: { count: 1, storageEngine: 'wiredTiger' },
-  });
-
+ const mongod = await MongoMemoryReplSet.create({
+  replSet: { count: 1, storageEngine: 'wiredTiger' },
+  instanceOpts: [{ launchTimeout: 60_000 }],
+});
   process.env.NODE_ENV = 'test';
   process.env.MONGODB_URL = mongod.getUri('ems-test');
   process.env.JWT_SECRET = 'test-access-secret-0123456789-abcdefghij';
