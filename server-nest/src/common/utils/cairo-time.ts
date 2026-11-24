@@ -61,3 +61,14 @@ export function formatCairoTime(date: Date) {
 export function formatCairoDate(date: Date) {
   return dateFormatter.format(date);
 }
+
+function cairoOffsetMs(instant: Date) {
+  const { year, month, day, hour, minute } = cairoParts(instant);
+  return Date.UTC(year, month - 1, day, hour, minute) - instant.getTime();
+}
+
+export function cairoDayStart(day: Date) {
+  const utcMidnight = day.getTime();
+  const guess = utcMidnight - cairoOffsetMs(new Date(utcMidnight));
+  return new Date(utcMidnight - cairoOffsetMs(new Date(guess)));
+}
