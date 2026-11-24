@@ -6,6 +6,7 @@ import { EmployeesService } from './employees.service.js';
 import { Employee, EmployeeSchema } from './schemas/employee.schema.js';
 import { SalariesModule } from '../salaries/salaries.module.js';
 import { SessionsModule } from '../sessions/sessions.module.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { SessionsModule } from '../sessions/sessions.module.js';
     UsersModule,
     SalariesModule,
     SessionsModule,
+    AuditModule,
   ],
   controllers: [EmployeesController],
   providers: [EmployeesService],

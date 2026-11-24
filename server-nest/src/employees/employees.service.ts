@@ -7,8 +7,13 @@ import {
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import bcrypt from 'bcrypt';
 import type { Connection, Model } from 'mongoose';
+import { describeValues, diffFields } from '../audit/audit-diff.js';
+import { AuditAction, type AuditEvent } from '../audit/audit.types.js';
+import { AuditService } from '../audit/audit.service.js';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { EmploymentStatus } from '../common/enums/employment-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
+import { withTransaction } from '../common/utils/with-transaction.js';
 import {
   SalariesService,
   toSalaryView,
@@ -18,11 +23,36 @@ import { SessionsService } from '../sessions/sessions.service.js';
 import { UsersService } from '../users/users.service.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
+import { fullName } from './employee-name.js';
 import { Employee, type EmployeeDocument } from './schemas/employee.schema.js';
+
+const EMPLOYEE_AUDIT_FIELDS = [
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'position',
+  'department',
+  'joinDate',
+  'employmentStatus',
+] as const;
+
+const SALARY_AUDIT_FIELDS = [
+  'basicSalary',
+  'allowances',
+  'deductions',
+] as const;
 
 interface PopulatedUser {
   email: string;
   role: Role;
+}
+
+interface UpdateAuditInput {
+  employeeChanges: object;
+  salaryChanges: Partial<SalaryAmounts>;
+  role?: Role;
+  passwordChanged: boolean;
 }
 
 @Injectable()
@@ -33,6 +63,7 @@ export class EmployeesService {
     private readonly users: UsersService,
     private readonly salaries: SalariesService,
     private readonly sessions: SessionsService,
+    private readonly audit: AuditService,
   ) {}
 
   async findAll(department?: string) {
@@ -82,19 +113,19 @@ export class EmployeesService {
     return employees.map((employee) => employee._id);
   }
 
-  async create(dto: CreateEmployeeDto) {
+  async create(dto: CreateEmployeeDto, actor: JwtPayload) {
     const hashed = await bcrypt.hash(dto.password, 10);
-    const session = await this.connection.startSession();
-    let employee: EmployeeDocument | undefined;
+    const role = dto.role ?? Role.EMPLOYEE;
+    const salary = {
+      basicSalary: dto.basicSalary ?? 0,
+      allowances: dto.allowances ?? 0,
+      deductions: dto.deductions ?? 0,
+    };
 
     try {
-      await session.withTransaction(async () => {
+      return await withTransaction(this.connection, async (session) => {
         const user = await this.users.create(
-          {
-            email: dto.email,
-            password: hashed,
-            role: dto.role ?? Role.EMPLOYEE,
-          },
+          { email: dto.email, password: hashed, role },
           session,
         );
         const [created] = await this.employeeModel.create(
@@ -113,27 +144,32 @@ export class EmployeesService {
           ],
           { session },
         );
-        await this.salaries.upsert(
-          created._id,
+        await this.salaries.upsert(created._id, salary, session);
+        await this.audit.record(
           {
-            basicSalary: dto.basicSalary ?? 0,
-            allowances: dto.allowances ?? 0,
-            deductions: dto.deductions ?? 0,
+            action: AuditAction.EMPLOYEE_CREATED,
+            actor,
+            targetId: created._id,
+            targetLabel: fullName(created),
+            changes: describeValues({
+              email: created.email,
+              role,
+              position: created.position,
+              department: created.department,
+              joinDate: created.joinDate,
+              ...salary,
+            }),
           },
           session,
         );
-        employee = created;
+        return created;
       });
     } catch (error) {
       throw this.mapError(error);
-    } finally {
-      await session.endSession();
     }
-
-    return employee;
   }
 
-  async update(id: string, dto: UpdateEmployeeDto) {
+  async update(id: string, dto: UpdateEmployeeDto, actor: JwtPayload) {
     const employee = await this.employeeModel.findById(id).exec();
     if (!employee) throw new NotFoundException('Employee not found');
 
@@ -161,9 +197,15 @@ export class EmployeesService {
     if (role) userChanges.role = role;
     if (password) userChanges.password = await bcrypt.hash(password, 10);
 
-    const session = await this.connection.startSession();
+    const events = await this.collectAuditEvents(employee, actor, {
+      employeeChanges,
+      salaryChanges,
+      role,
+      passwordChanged: Boolean(password),
+    });
+
     try {
-      await session.withTransaction(async () => {
+      await withTransaction(this.connection, async (session) => {
         await this.employeeModel
           .updateOne({ _id: id }, employeeChanges, { session })
           .exec();
@@ -177,11 +219,10 @@ export class EmployeesService {
             session,
           );
         }
+        await this.audit.record(events, session);
       });
     } catch (error) {
       throw this.mapError(error);
-    } finally {
-      await session.endSession();
     }
 
     if (role || password) {
@@ -191,15 +232,37 @@ export class EmployeesService {
     return { success: true };
   }
 
-  async remove(id: string) {
-    const result = await this.employeeModel
-      .updateOne(
-        { _id: id },
-        { isDeleted: true, employmentStatus: EmploymentStatus.INACTIVE },
-      )
-      .exec();
-    if (result.matchedCount === 0)
-      throw new NotFoundException('Employee not found');
+  async remove(id: string, actor: JwtPayload) {
+    const employee = await this.employeeModel.findById(id).exec();
+    if (!employee) throw new NotFoundException('Employee not found');
+    if (employee.isDeleted) return { success: true };
+
+    await withTransaction(this.connection, async (session) => {
+      await this.employeeModel
+        .updateOne(
+          { _id: id },
+          { isDeleted: true, employmentStatus: EmploymentStatus.INACTIVE },
+          { session },
+        )
+        .exec();
+      await this.audit.record(
+        {
+          action: AuditAction.EMPLOYEE_DEACTIVATED,
+          actor,
+          targetId: employee._id,
+          targetLabel: fullName(employee),
+          changes: [
+            {
+              field: 'employmentStatus',
+              from: employee.employmentStatus,
+              to: EmploymentStatus.INACTIVE,
+            },
+          ],
+        },
+        session,
+      );
+    });
+
     return { success: true };
   }
 
@@ -213,6 +276,64 @@ export class EmployeesService {
     }
     await this.employeeModel.updateOne({ _id: employee._id }, { bio }).exec();
     return { success: true };
+  }
+
+  private async collectAuditEvents(
+    employee: EmployeeDocument,
+    actor: JwtPayload,
+    input: UpdateAuditInput,
+  ) {
+    const target = {
+      actor,
+      targetId: employee._id,
+      targetLabel: fullName(employee),
+    };
+    const events: AuditEvent[] = [];
+
+    const profileChanges = diffFields(
+      employee.toObject(),
+      input.employeeChanges,
+      EMPLOYEE_AUDIT_FIELDS,
+    );
+    if (input.role) {
+      const user = await this.users.findById(employee.userId.toString());
+      if (user && user.role !== input.role) {
+        profileChanges.push({ field: 'role', from: user.role, to: input.role });
+      }
+    }
+    if (profileChanges.length > 0) {
+      events.push({
+        action: AuditAction.EMPLOYEE_UPDATED,
+        ...target,
+        changes: profileChanges,
+      });
+    }
+
+    if (Object.keys(input.salaryChanges).length > 0) {
+      const current = await this.salaries.getForEmployee(employee._id);
+      const salaryDiff = diffFields(
+        { ...current },
+        input.salaryChanges,
+        SALARY_AUDIT_FIELDS,
+      );
+      if (salaryDiff.length > 0) {
+        events.push({
+          action: AuditAction.SALARY_UPDATED,
+          ...target,
+          changes: salaryDiff,
+        });
+      }
+    }
+
+    if (input.passwordChanged) {
+      events.push({
+        action: AuditAction.EMPLOYEE_PASSWORD_RESET,
+        ...target,
+        changes: [],
+      });
+    }
+
+    return events;
   }
 
   private mapError(error: unknown) {
