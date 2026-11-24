@@ -1,3 +1,5 @@
+import { AuditModule } from './audit/audit.module.js';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -39,6 +41,7 @@ import { HealthModule } from './health/health.module.js';
     AnalyticsModule,
     DemoModule,
     HealthModule,
+    AuditModule,
   ],
 })
 export class AppModule {}
