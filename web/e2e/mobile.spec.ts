@@ -14,6 +14,7 @@ const ADMIN_PAGES = [
   "/payslips",
   "/settings",
   "/analytics",
+  "/audit-log",
 ];
 
 test.describe("mobile layout", () => {
