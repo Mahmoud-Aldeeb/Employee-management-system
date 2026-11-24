@@ -66,5 +66,6 @@ export class DemoDataStore {
     await this.attendance.insertMany(dataset.attendance, { session });
     await this.leaves.insertMany(dataset.leaves, { session });
     await this.payslips.insertMany(dataset.payslips, { session });
+    await this.auditLogs.insertMany(dataset.auditLogs, { session });
   }
 }

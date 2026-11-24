@@ -5,13 +5,17 @@ import { DayType } from '../common/enums/day-type.enum.js';
 import { LeaveStatus } from '../common/enums/leave-status.enum.js';
 import { LeaveType } from '../common/enums/leave-type.enum.js';
 import { Role } from '../common/enums/role.enum.js';
-import { cairoDay } from '../common/utils/cairo-time.js';
 import type { Employee } from '../employees/schemas/employee.schema.js';
 import type { LeaveApplication } from '../leave/schemas/leave-application.schema.js';
 import type { Payslip } from '../payslips/schemas/payslip.schema.js';
 import type { Salary } from '../salaries/schemas/salary.schema.js';
 import type { User } from '../users/schemas/user.schema.js';
 import { DEMO_ADMIN_EMAIL, DEMO_EMAIL_DOMAIN } from './demo.constants.js';
+import { describeValues } from '../audit/audit-diff.js';
+import { AuditAction, type AuditChange } from '../audit/audit.types.js';
+import type { AuditLog } from '../audit/schemas/audit-log.schema.js';
+import { cairoDay, formatCairoDate } from '../common/utils/cairo-time.js';
+import { fullName } from '../employees/employee-name.js';
 
 type WithId<T> = T & { _id: Types.ObjectId };
 
@@ -67,6 +71,18 @@ export interface DemoDataset {
       | 'deductions'
       | 'netSalary'
     > & { createdAt: Date }
+  >;
+  auditLogs: Array<
+    Pick<
+      AuditLog,
+      | 'action'
+      | 'actorId'
+      | 'actorEmail'
+      | 'targetLabel'
+      | 'changes'
+      | 'isDemo'
+      | 'createdAt'
+    >
   >;
 }
 
@@ -351,6 +367,26 @@ const OPEN_SHIFT_COUNT = 8;
 const ABSENCE_RATE = 0.06;
 const LATE_RATE = 0.12;
 const DEMO_SEED = 20_261_119;
+const AUDIT_DECISION_DELAY_HOURS = 5;
+
+const SALARY_HISTORY = [
+  { person: 1, from: 7200, daysAgo: 20 },
+  { person: 10, from: 8200, daysAgo: 45 },
+];
+
+const POSITION_HISTORY = {
+  person: 2,
+  from: 'Frontend Developer',
+  daysAgo: 12,
+};
+
+interface AuditLogInput {
+  now: Date;
+  actor: { id: Types.ObjectId; email: string };
+  staff: Array<{ person: DemoPerson; employeeId: Types.ObjectId }>;
+  leaves: DemoDataset['leaves'];
+  payslips: DemoDataset['payslips'];
+}
 
 function createRandom(seed: number) {
   let state = seed >>> 0;
@@ -419,6 +455,102 @@ function buildShift(
     workingHours: hours,
     dayType: dayTypeFor(hours),
   };
+}
+
+function buildAuditLogs({
+  now,
+  actor,
+  staff,
+  leaves,
+  payslips,
+}: AuditLogInput): DemoDataset['auditLogs'] {
+  const names = staff.map(({ person }) => fullName(person));
+  const nameByEmployee = new Map(
+    staff.map(
+      ({ person, employeeId }) =>
+        [String(employeeId), fullName(person)] as const,
+    ),
+  );
+
+  const entry = (
+    action: AuditAction,
+    targetLabel: string,
+    changes: AuditChange[],
+    createdAt: Date,
+  ): DemoDataset['auditLogs'][number] => ({
+    action,
+    actorId: actor.id,
+    actorEmail: actor.email,
+    targetLabel,
+    changes,
+    isDemo: true,
+    createdAt: new Date(Math.min(now.getTime(), createdAt.getTime())),
+  });
+
+  const decisions = LEAVE_TEMPLATES.flatMap((template, index) => {
+    if (template.status === LeaveStatus.PENDING) return [];
+
+    const leave = leaves[index];
+    const period = `${formatCairoDate(leave.startDate)} - ${formatCairoDate(leave.endDate)}`;
+
+    return [
+      entry(
+        template.status === LeaveStatus.APPROVED
+          ? AuditAction.LEAVE_APPROVED
+          : AuditAction.LEAVE_REJECTED,
+        `${names[template.person]} (${period})`,
+        [{ field: 'status', from: LeaveStatus.PENDING, to: template.status }],
+        new Date(
+          leave.createdAt.getTime() + AUDIT_DECISION_DELAY_HOURS * HOUR_MS,
+        ),
+      ),
+    ];
+  });
+
+  const newestPayslip = Math.max(
+    ...payslips.map((payslip) => payslip.createdAt.getTime()),
+  );
+  const issued = payslips
+    .filter((payslip) => payslip.createdAt.getTime() === newestPayslip)
+    .map((payslip) =>
+      entry(
+        AuditAction.PAYSLIP_CREATED,
+        `${nameByEmployee.get(String(payslip.employeeId)) ?? ''} - ${String(payslip.month).padStart(2, '0')}/${payslip.year}`,
+        describeValues({
+          month: payslip.month,
+          year: payslip.year,
+          basicSalary: payslip.basicSalary,
+          allowances: payslip.allowances,
+          deductions: payslip.deductions,
+          netSalary: payslip.netSalary,
+        }),
+        payslip.createdAt,
+      ),
+    );
+
+  const raises = SALARY_HISTORY.map(({ person, from, daysAgo }) =>
+    entry(
+      AuditAction.SALARY_UPDATED,
+      names[person],
+      [{ field: 'basicSalary', from, to: PEOPLE[person].basicSalary }],
+      new Date(now.getTime() - daysAgo * DAY_MS),
+    ),
+  );
+
+  const retitled = entry(
+    AuditAction.EMPLOYEE_UPDATED,
+    names[POSITION_HISTORY.person],
+    [
+      {
+        field: 'position',
+        from: POSITION_HISTORY.from,
+        to: PEOPLE[POSITION_HISTORY.person].position,
+      },
+    ],
+    new Date(now.getTime() - POSITION_HISTORY.daysAgo * DAY_MS),
+  );
+
+  return [...decisions, ...issued, ...raises, retitled];
 }
 
 export function buildDemoDataset({
@@ -541,5 +673,21 @@ export function buildDemoDataset({
     }
   }
 
-  return { users, employees, salaries, attendance, leaves, payslips };
+  const auditLogs = buildAuditLogs({
+    now,
+    actor: { id: users[0]._id, email: DEMO_ADMIN_EMAIL },
+    staff,
+    leaves,
+    payslips,
+  });
+
+  return {
+    users,
+    employees,
+    salaries,
+    attendance,
+    leaves,
+    payslips,
+    auditLogs,
+  };
 }
