@@ -23,7 +23,7 @@ A full-stack HR portal with separate **Admin** and **Employee** experiences: emp
 
 ## Why this project
 
-This is a rebuild of an earlier JavaScript MERN app. The goal was to move it to a production-style architecture: typed end to end, secure session handling, validated APIs, automated tests and CI. The original version is preserved under the [`development`](https://github.com/Mahmoud-Aldeeb/Employee-management-system/tree/development) tag.
+This is a rebuild of an earlier JavaScript MERN app. The goal was to move it to a production-style architecture: typed end to end, secure session handling, validated APIs, automated tests and CI. The original version is preserved under the [`legacy-mern-js`](https://github.com/Mahmoud-Aldeeb/Employee-management-system/tree/legacy-mern-js) tag.
 
 ## Features
 
@@ -36,6 +36,10 @@ This is a rebuild of an earlier JavaScript MERN app. The goal was to move it to 
 - **Background jobs (Inngest):** automatic check-out, pending-leave reminders, daily attendance reminders by email
 - **Responsive:** tested on desktop and mobile viewports
 - **Team calendar:** a month view of who is out, with department filter for admins; employees see their own requests and the approved leave of their department without its type
+
+- **Dashboard:** one page that adapts to the role. Admins get KPIs, pending leave requests they can approve or reject in place, who is out today, a 7-day attendance trend and a department breakdown; employees get clock in/out, their current salary, leave balance and latest payslip
+- **Audit log:** every administrative action (employee and salary changes, leave decisions, payslips, admin sign-ins, password changes) is recorded with the values before and after, saved in the same transaction as the change and never containing a password or secret; searchable, filterable and paginated, and kept for 180 days
+- **Demo mode:** one-click "Explore as Admin / Employee" with realistic data that resets every night
 
 ## Tech stack
 
@@ -81,7 +85,7 @@ sequenceDiagram
 
 - **No tokens in `localStorage`.** Sessions live in httpOnly cookies. Refresh tokens are stored hashed, rotated on every use and revoked on logout and password change.
 - **Server-side authority.** Net salary is calculated by the API, payslips are only readable by their owner or an admin, and request bodies are validated with DTOs that reject unknown fields.
-- **Transactions.** Creating an employee creates the user and the employee record atomically.
+- **Transactions.** Creating or updating an employee changes the user, the employee record and the salary atomically, and every audited change (including leave decisions and payslips) is saved in the same transaction as its audit entry, so there is never a change without a record or a record without a change.
 - **Time zones.** Attendance days and "late" thresholds are computed in Africa/Cairo on the server, independent of the client clock.
 - **Server state with TanStack Query.** Every mutation invalidates the affected data, so pages stay consistent without manual refetching.
 - **Rate limiting.** Login attempts are limited per email. `@nestjs/throttler` was replaced with `express-rate-limit` because Nest 12 is ESM-only and the CommonJS throttler could not be loaded by the Vercel function runtime.
@@ -99,7 +103,7 @@ GitHub Actions runs lint, type-check, unit tests, build and the end-to-end suite
 
 ## Getting started
 
-Requirements: Node.js 22 and a MongoDB database (transactions need a replica set; MongoDB Atlas works).
+Requirements: Node.js 24 and a MongoDB database (transactions need a replica set; MongoDB Atlas works).
 
 ```bash
 # API
@@ -145,6 +149,14 @@ Open http://localhost:3000 and use the demo buttons. MongoDB runs as a single-no
 | web         | `API_URL`                                                          | NestJS API origin used by the `/api` rewrite                               |
 | server-nest | DEMO_MODE                                                          | Enables the demo accounts, nightly demo reset and disables outgoing email. |
 
+## Audit log
+
+Admins open `/audit-log` to see who did what, to whom and when (Cairo time), with the old and new values of every changed field. Filters (event type, search, date range) and pagination run on the server through `GET /api/audit-logs`.
+
+- Only administrative actions are recorded; passwords and secrets are never stored, because only an allow-list of fields is compared.
+- Entries expire after 180 days (MongoDB TTL index).
+- Demo visitors only see demo events, and the nightly reset clears them and restores a realistic history.
+
 ## Leave policy (Egyptian Labor Law No. 14 of 2025)
 
 | Rule         | Implementation                                                                                                                                                              |
@@ -169,8 +181,7 @@ See [`web/README.md`](web/README.md) and [`server-nest/README.md`](server-nest/R
 
 ## Roadmap
 
-- Leave balances and a team calendar
-- Audit log of sensitive changes
 - In-app notifications
 - Password reset and first-login password change
+- Attendance correction requests
 - Arabic / RTL interface
