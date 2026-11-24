@@ -5,12 +5,9 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { LeaveStatus } from '../common/enums/leave-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
-import { cairoDay } from '../common/utils/cairo-time.js';
 import { EmployeesService } from '../employees/employees.service.js';
 import type { Employee } from '../employees/schemas/employee.schema.js';
 import { InngestService } from '../inngest/inngest.service.js';
@@ -18,8 +15,21 @@ import { CreateLeaveDto } from './dto/create-leave.dto.js';
 import { LeaveBalanceService } from './leave-balance.service.js';
 import { startOfUtcDay } from './policy/leave-calendar.js';
 import { LeaveApplication } from './schemas/leave-application.schema.js';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import type { Connection, Model } from 'mongoose';
+import { AuditAction } from '../audit/audit.types.js';
+import { AuditService } from '../audit/audit.service.js';
+import { withTransaction } from '../common/utils/with-transaction.js';
+import { fullName } from '../employees/employee-name.js';
+import { cairoDay, formatCairoDate } from '../common/utils/cairo-time.js';
 
 type PopulatedEmployee = Employee & { _id: unknown };
+
+const LEAVE_ACTIONS: Record<LeaveStatus, AuditAction> = {
+  [LeaveStatus.PENDING]: AuditAction.LEAVE_REOPENED,
+  [LeaveStatus.APPROVED]: AuditAction.LEAVE_APPROVED,
+  [LeaveStatus.REJECTED]: AuditAction.LEAVE_REJECTED,
+};
 
 @Injectable()
 export class LeaveService {
@@ -28,9 +38,11 @@ export class LeaveService {
   constructor(
     @InjectModel(LeaveApplication.name)
     private readonly leaveModel: Model<LeaveApplication>,
+    @InjectConnection() private readonly connection: Connection,
     private readonly employees: EmployeesService,
     private readonly balances: LeaveBalanceService,
     private readonly inngest: InngestService,
+    private readonly audit: AuditService,
   ) {}
 
   async create(userId: string, dto: CreateLeaveDto) {
@@ -124,30 +136,43 @@ export class LeaveService {
     return this.balances.getBalance(employee, year);
   }
 
-  async updateStatus(id: string, status: LeaveStatus) {
+  async updateStatus(id: string, status: LeaveStatus, actor: JwtPayload) {
     const leave = await this.leaveModel.findById(id).exec();
     if (!leave) throw new NotFoundException('Leave application not found');
 
-    if (
-      leave.status === LeaveStatus.REJECTED &&
-      status !== LeaveStatus.REJECTED
-    ) {
-      const employee = await this.employees.findById(String(leave.employeeId));
-      if (employee) {
-        await this.balances.assertCanBook(
-          employee,
-          {
-            type: leave.type,
-            startDate: leave.startDate,
-            endDate: leave.endDate,
-          },
-          id,
-        );
-      }
+    const previous = leave.status;
+    if (previous === status) return { success: true, data: leave };
+
+    const employee = await this.employees.findById(String(leave.employeeId));
+    if (employee && previous === LeaveStatus.REJECTED) {
+      await this.balances.assertCanBook(
+        employee,
+        {
+          type: leave.type,
+          startDate: leave.startDate,
+          endDate: leave.endDate,
+        },
+        id,
+      );
     }
 
-    leave.status = status;
-    await leave.save();
+    const owner = employee ? fullName(employee) : 'Unknown employee';
+    const period = `${formatCairoDate(leave.startDate)} - ${formatCairoDate(leave.endDate)}`;
+
+    await withTransaction(this.connection, async (session) => {
+      leave.status = status;
+      await leave.save({ session });
+      await this.audit.record(
+        {
+          action: LEAVE_ACTIONS[status],
+          actor,
+          targetId: leave._id,
+          targetLabel: `${owner} (${period})`,
+          changes: [{ field: 'status', from: previous, to: status }],
+        },
+        session,
+      );
+    });
 
     return { success: true, data: leave };
   }

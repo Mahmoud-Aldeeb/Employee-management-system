@@ -12,6 +12,7 @@ import {
   LeaveApplication,
   LeaveApplicationSchema,
 } from './schemas/leave-application.schema.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import {
     ]),
     EmployeesModule,
     InngestModule,
+    AuditModule,
   ],
   controllers: [LeaveController, TeamCalendarController],
   providers: [

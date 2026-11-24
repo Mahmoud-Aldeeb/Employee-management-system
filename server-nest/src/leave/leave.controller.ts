@@ -66,7 +66,8 @@ export class LeaveController {
   updateStatus(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateLeaveStatusDto,
+    @CurrentUser() actor: JwtPayload,
   ) {
-    return this.leave.updateStatus(id, dto.status);
+    return this.leave.updateStatus(id, dto.status, actor);
   }
 }
