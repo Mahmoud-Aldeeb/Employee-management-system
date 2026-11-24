@@ -40,7 +40,7 @@ export class PayslipsController {
     summary:
       'Generate a monthly payslip; amounts default to the current salary (admin)',
   })
-  create(@Body() dto: CreatePayslipDto) {
-    return this.payslips.create(dto);
+  create(@Body() dto: CreatePayslipDto, @CurrentUser() actor: JwtPayload) {
+    return this.payslips.create(dto, actor);
   }
 }
