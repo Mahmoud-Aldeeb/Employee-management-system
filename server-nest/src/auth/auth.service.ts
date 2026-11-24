@@ -17,6 +17,8 @@ import { ACCESS_TTL_S, REFRESH_TTL_S } from './auth.constants.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import type { JwtPayload } from './strategies/jwt.strategy.js';
+import { AuditAction } from '../audit/audit.types.js';
+import { AuditService } from '../audit/audit.service.js';
 
 interface RefreshPayload extends JwtPayload {
   sid: string;
@@ -35,6 +37,7 @@ export class AuthService {
     private readonly sessions: SessionsService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   async login(dto: LoginDto, userAgent?: string) {
@@ -51,10 +54,16 @@ export class AuthService {
     if (dto.role_type === 'employee' && user.role !== Role.EMPLOYEE) {
       throw new ForbiddenException('Not authorized as employee');
     }
-    return this.openSession(
-      { id: user.id, email: user.email, role: user.role },
-      userAgent,
-    );
+
+    const identity = { id: user.id, email: user.email, role: user.role };
+    const tokens = await this.openSession(identity, userAgent);
+    if (user.role === Role.ADMIN) {
+      await this.audit.recordBestEffort({
+        action: AuditAction.ADMIN_LOGIN,
+        actor: identity,
+      });
+    }
+    return tokens;
   }
 
   async openSession(identity: JwtPayload, userAgent?: string) {
@@ -137,10 +146,17 @@ export class AuthService {
     );
     await this.sessions.revokeAllForUser(userId);
 
-    return this.openSession(
-      { id: user.id, email: user.email, role: user.role },
-      userAgent,
-    );
+    const identity = { id: user.id, email: user.email, role: user.role };
+    const tokens = await this.openSession(identity, userAgent);
+    if (user.role === Role.ADMIN) {
+      await this.audit.recordBestEffort({
+        action: AuditAction.PASSWORD_CHANGED,
+        actor: identity,
+        targetId: user.id,
+        targetLabel: user.email,
+      });
+    }
+    return tokens;
   }
 
   private async signTokens(identity: JwtPayload, sid: string) {

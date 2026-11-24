@@ -7,6 +7,7 @@ import { AuthCookies } from './auth-cookies.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
     SessionsModule,
     PassportModule,
     JwtModule.register({}),
+    AuditModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthCookies, JwtStrategy],
