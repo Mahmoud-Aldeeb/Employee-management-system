@@ -43,7 +43,9 @@ test.describe("audit log", () => {
   test("an employee does not see the audit log", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: "Explore as Employee" }).click();
-    await expect(page.getByRole("link", { name: "Leave" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Leave", exact: true }),
+    ).toBeVisible();
 
     await expect(page.getByRole("link", { name: "Audit Log" })).toHaveCount(0);
   });
