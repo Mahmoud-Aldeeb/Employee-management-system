@@ -225,3 +225,41 @@ export interface TeamCalendar {
   days: TeamCalendarDay[];
   summary: { employeesOut: number; outToday: number; pendingLeaves: number };
 }
+
+export type AuditAction =
+  | "EMPLOYEE_CREATED"
+  | "EMPLOYEE_UPDATED"
+  | "EMPLOYEE_DEACTIVATED"
+  | "EMPLOYEE_PASSWORD_RESET"
+  | "SALARY_UPDATED"
+  | "LEAVE_APPROVED"
+  | "LEAVE_REJECTED"
+  | "LEAVE_REOPENED"
+  | "PAYSLIP_CREATED"
+  | "ADMIN_LOGIN"
+  | "PASSWORD_CHANGED";
+
+export interface AuditChange {
+  field: string;
+  from: unknown;
+  to: unknown;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: AuditAction;
+  actorId: string;
+  actorEmail: string;
+  targetId: string | null;
+  targetLabel: string;
+  changes: AuditChange[];
+  createdAt: string;
+}
+
+export interface AuditLogPage {
+  data: AuditLogEntry[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
