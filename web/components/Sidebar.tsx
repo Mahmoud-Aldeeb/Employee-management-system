@@ -8,6 +8,7 @@ import {
   FileSignalIcon,
   LayoutGridIcon,
   LogOutIcon,
+  ScrollTextIcon,
   SettingsIcon,
   UserIcon,
   XIcon,
@@ -32,6 +33,7 @@ function getNavItems(role: SessionUser['role']): NavItem[] {
       ? [
         { name: 'Employees', href: '/employees', icon: UserIcon },
         { name: 'Analytics', href: '/analytics', icon: FileSignalIcon },
+        { name: 'Audit Log', href: '/audit-log', icon: ScrollTextIcon },
       ]
       : [{ name: 'Attendance', href: '/attendance', icon: CalendarHeartIcon }]),
     { name: 'Leave', href: '/leave', icon: FileSignalIcon },
