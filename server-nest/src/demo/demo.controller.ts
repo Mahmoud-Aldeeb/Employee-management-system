@@ -16,7 +16,9 @@ import { userAgentOf } from '../auth/request-user-agent.js';
 import { DemoModeGuard } from './demo-mode.guard.js';
 import { DemoService } from './demo.service.js';
 import { DemoLoginDto } from './dto/demo-login.dto.js';
-
+import { AuditAction } from '../audit/audit.types.js';
+import { AuditService } from '../audit/audit.service.js';
+import { Role } from '../common/enums/role.enum.js';
 @ApiTags('Demo')
 @Controller('demo')
 export class DemoController {
@@ -24,6 +26,7 @@ export class DemoController {
     private readonly demo: DemoService,
     private readonly auth: AuthService,
     private readonly cookies: AuthCookies,
+    private readonly audit: AuditService,
   ) {}
 
   @Get('status')
@@ -51,6 +54,14 @@ export class DemoController {
       account,
       userAgentOf(req),
     );
+
+    if (account.role === Role.ADMIN) {
+      await this.audit.recordBestEffort({
+        action: AuditAction.ADMIN_LOGIN,
+        actor: account,
+      });
+    }
+
     this.cookies.set(res, tokens);
     return { user: payload };
   }

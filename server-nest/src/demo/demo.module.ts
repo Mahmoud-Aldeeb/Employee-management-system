@@ -25,6 +25,8 @@ import { DemoDataStore } from './demo-data.store.js';
 import { DemoModeGuard } from './demo-mode.guard.js';
 import { DemoController } from './demo.controller.js';
 import { DemoService } from './demo.service.js';
+import { AuditModule } from '../audit/audit.module.js';
+import { AuditLog, AuditLogSchema } from '../audit/schemas/audit-log.schema.js';
 
 @Module({
   imports: [
@@ -36,9 +38,11 @@ import { DemoService } from './demo.service.js';
       { name: LeaveApplication.name, schema: LeaveApplicationSchema },
       { name: Payslip.name, schema: PayslipSchema },
       { name: AuthSession.name, schema: AuthSessionSchema },
+      { name: AuditLog.name, schema: AuditLogSchema },
     ]),
     UsersModule,
     AuthModule,
+    AuditModule,
   ],
   controllers: [DemoController],
   providers: [DemoService, DemoDataStore, DemoModeGuard],

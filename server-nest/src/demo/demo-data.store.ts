@@ -10,6 +10,7 @@ import { AuthSession } from '../sessions/schemas/auth-session.schema.js';
 import { User } from '../users/schemas/user.schema.js';
 import type { DemoDataset } from './demo-dataset.js';
 import { DEMO_EMAIL_PATTERN } from './demo.constants.js';
+import { AuditLog } from '../audit/schemas/audit-log.schema.js';
 
 @Injectable()
 export class DemoDataStore {
@@ -24,6 +25,7 @@ export class DemoDataStore {
     @InjectModel(Payslip.name) private readonly payslips: Model<Payslip>,
     @InjectModel(AuthSession.name)
     private readonly authSessions: Model<AuthSession>,
+    @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
   ) {}
 
   async clear(session: ClientSession) {
@@ -53,6 +55,7 @@ export class DemoDataStore {
       { userId: { $in: userIds } },
       { session },
     );
+    await this.auditLogs.deleteMany({ isDemo: true }, { session });
     await this.users.deleteMany({ _id: { $in: userIds } }, { session });
   }
 
