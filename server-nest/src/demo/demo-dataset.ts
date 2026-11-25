@@ -16,6 +16,14 @@ import { AuditAction, type AuditChange } from '../audit/audit.types.js';
 import type { AuditLog } from '../audit/schemas/audit-log.schema.js';
 import { cairoDay, formatCairoDate } from '../common/utils/cairo-time.js';
 import { fullName } from '../employees/employee-name.js';
+import { formatLeavePeriod } from '../leave/leave-period.js';
+import {
+  leaveDecisionContent,
+  leaveRequestedContent,
+  payslipIssuedContent,
+} from '../notifications/notification-content.js';
+import type { NotificationContent } from '../notifications/notification.types.js';
+import type { Notification } from '../notifications/schemas/notification.schema.js';
 
 type WithId<T> = T & { _id: Types.ObjectId };
 
@@ -82,6 +90,12 @@ export interface DemoDataset {
       | 'changes'
       | 'isDemo'
       | 'createdAt'
+    >
+  >;
+  notifications: Array<
+    Pick<
+      Notification,
+      'userId' | 'type' | 'title' | 'message' | 'link' | 'readAt' | 'createdAt'
     >
   >;
 }
@@ -369,6 +383,17 @@ const LATE_RATE = 0.12;
 const DEMO_SEED = 20_261_119;
 const AUDIT_DECISION_DELAY_HOURS = 5;
 
+const NOTIFICATION_READ_DELAY_HOURS = 2;
+
+interface NotificationInput {
+  now: Date;
+  adminId: Types.ObjectId;
+  demoEmployee: { userId: Types.ObjectId; employeeId: Types.ObjectId };
+  names: string[];
+  leaves: DemoDataset['leaves'];
+  payslips: DemoDataset['payslips'];
+}
+
 const SALARY_HISTORY = [
   { person: 1, from: 7200, daysAgo: 20 },
   { person: 10, from: 8200, daysAgo: 45 },
@@ -553,6 +578,99 @@ function buildAuditLogs({
   return [...decisions, ...issued, ...raises, retitled];
 }
 
+function buildNotifications({
+  now,
+  adminId,
+  demoEmployee,
+  names,
+  leaves,
+  payslips,
+}: NotificationInput): DemoDataset['notifications'] {
+  const entry = (
+    userId: Types.ObjectId,
+    content: NotificationContent,
+    createdAt: Date,
+    read: boolean,
+  ): DemoDataset['notifications'][number] => {
+    const created = new Date(Math.min(now.getTime(), createdAt.getTime()));
+
+    return {
+      userId,
+      ...content,
+      readAt: read
+        ? new Date(
+            Math.min(
+              now.getTime(),
+              created.getTime() + NOTIFICATION_READ_DELAY_HOURS * HOUR_MS,
+            ),
+          )
+        : null,
+      createdAt: created,
+    };
+  };
+
+  const periodOf = (index: number) =>
+    formatLeavePeriod(leaves[index].startDate, leaves[index].endDate);
+
+  const pending = LEAVE_TEMPLATES.flatMap((template, index) =>
+    template.status === LeaveStatus.PENDING ? [{ template, index }] : [],
+  );
+  const oldestFiled = Math.max(
+    ...pending.map(({ template }) => template.filedDaysAgo),
+  );
+
+  const requests = pending.map(({ template, index }) =>
+    entry(
+      adminId,
+      leaveRequestedContent({
+        employeeName: names[template.person],
+        leaveType: template.type,
+        period: periodOf(index),
+      }),
+      leaves[index].createdAt,
+      template.filedDaysAgo === oldestFiled,
+    ),
+  );
+
+  const decisions = LEAVE_TEMPLATES.flatMap((template, index) =>
+    template.person === 0 && template.status !== LeaveStatus.PENDING
+      ? [
+          entry(
+            demoEmployee.userId,
+            leaveDecisionContent({
+              status: template.status,
+              leaveType: template.type,
+              period: periodOf(index),
+            }),
+            new Date(
+              leaves[index].createdAt.getTime() +
+                AUDIT_DECISION_DELAY_HOURS * HOUR_MS,
+            ),
+            true,
+          ),
+        ]
+      : [],
+  );
+
+  const latestPayslip = payslips
+    .filter((payslip) => payslip.employeeId.equals(demoEmployee.employeeId))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  const issued = latestPayslip
+    ? [
+        entry(
+          demoEmployee.userId,
+          payslipIssuedContent(
+            `${String(latestPayslip.month).padStart(2, '0')}/${latestPayslip.year}`,
+          ),
+          latestPayslip.createdAt,
+          false,
+        ),
+      ]
+    : [];
+
+  return [...requests, ...decisions, ...issued];
+}
+
 export function buildDemoDataset({
   now,
   passwordHash,
@@ -681,6 +799,18 @@ export function buildDemoDataset({
     payslips,
   });
 
+  const notifications = buildNotifications({
+    now,
+    adminId: users[0]._id,
+    demoEmployee: {
+      userId: staff[0].userId,
+      employeeId: staff[0].employeeId,
+    },
+    names: staff.map(({ person }) => fullName(person)),
+    leaves,
+    payslips,
+  });
+
   return {
     users,
     employees,
@@ -689,5 +819,6 @@ export function buildDemoDataset({
     leaves,
     payslips,
     auditLogs,
+    notifications,
   };
 }

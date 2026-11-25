@@ -11,6 +11,7 @@ import { User } from '../users/schemas/user.schema.js';
 import type { DemoDataset } from './demo-dataset.js';
 import { DEMO_EMAIL_PATTERN } from './demo.constants.js';
 import { AuditLog } from '../audit/schemas/audit-log.schema.js';
+import { Notification } from '../notifications/schemas/notification.schema.js';
 
 @Injectable()
 export class DemoDataStore {
@@ -26,6 +27,8 @@ export class DemoDataStore {
     @InjectModel(AuthSession.name)
     private readonly authSessions: Model<AuthSession>,
     @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
+    @InjectModel(Notification.name)
+    private readonly notifications: Model<Notification>,
   ) {}
 
   async clear(session: ClientSession) {
@@ -56,6 +59,10 @@ export class DemoDataStore {
       { session },
     );
     await this.auditLogs.deleteMany({ isDemo: true }, { session });
+    await this.notifications.deleteMany(
+      { userId: { $in: userIds } },
+      { session },
+    );
     await this.users.deleteMany({ _id: { $in: userIds } }, { session });
   }
 
@@ -67,5 +74,6 @@ export class DemoDataStore {
     await this.leaves.insertMany(dataset.leaves, { session });
     await this.payslips.insertMany(dataset.payslips, { session });
     await this.auditLogs.insertMany(dataset.auditLogs, { session });
+    await this.notifications.insertMany(dataset.notifications, { session });
   }
 }

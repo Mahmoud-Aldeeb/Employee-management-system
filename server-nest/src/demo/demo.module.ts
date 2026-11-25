@@ -27,6 +27,10 @@ import { DemoController } from './demo.controller.js';
 import { DemoService } from './demo.service.js';
 import { AuditModule } from '../audit/audit.module.js';
 import { AuditLog, AuditLogSchema } from '../audit/schemas/audit-log.schema.js';
+import {
+  Notification,
+  NotificationSchema,
+} from '../notifications/schemas/notification.schema.js';
 
 @Module({
   imports: [
@@ -39,6 +43,7 @@ import { AuditLog, AuditLogSchema } from '../audit/schemas/audit-log.schema.js';
       { name: Payslip.name, schema: PayslipSchema },
       { name: AuthSession.name, schema: AuthSessionSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Notification.name, schema: NotificationSchema },
     ]),
     UsersModule,
     AuthModule,
