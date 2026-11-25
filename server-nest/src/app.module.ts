@@ -1,3 +1,4 @@
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { AuditModule } from './audit/audit.module.js';
 
 import { Module } from '@nestjs/common';
@@ -42,6 +43,7 @@ import { HealthModule } from './health/health.module.js';
     DemoModule,
     HealthModule,
     AuditModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
