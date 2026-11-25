@@ -16,6 +16,7 @@ import {
 import { MailModule } from '../mail/mail.module.js';
 import { InngestFunctionsService } from './inngest-functions.service.js';
 import { InngestService } from './inngest.service.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { InngestService } from './inngest.service.js';
     ]),
     MailModule,
     DemoModule,
+    NotificationsModule,
   ],
   providers: [InngestService, InngestFunctionsService],
   exports: [InngestService, InngestFunctionsService],

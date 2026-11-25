@@ -12,6 +12,9 @@ import {
   formatCairoDate,
   formatCairoTime,
 } from '../common/utils/cairo-time.js';
+import { isDemoEmail } from '../demo/demo.constants.js';
+import { DemoService } from '../demo/demo.service.js';
+import { fullName } from '../employees/employee-name.js';
 import { Employee } from '../employees/schemas/employee.schema.js';
 import { LeaveApplication } from '../leave/schemas/leave-application.schema.js';
 import {
@@ -20,8 +23,13 @@ import {
   leaveReminderEmail,
 } from '../mail/email-templates.js';
 import { MailService } from '../mail/mail.service.js';
+import {
+  absenceReminderContent,
+  autoCheckOutContent,
+  leaveReminderContent,
+} from '../notifications/notification-content.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { InngestService } from './inngest.service.js';
-import { DemoService } from '../demo/demo.service.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -37,6 +45,7 @@ export class InngestFunctionsService {
     private readonly mail: MailService,
     private readonly config: ConfigService,
     private readonly demo: DemoService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   getFunctions() {
@@ -89,11 +98,12 @@ export class InngestFunctionsService {
 
         await step.sleep('wait-1-hour', '1h');
 
-        await step.run('auto-check-out', async () => {
+        const closed = await step.run('auto-check-out', async () => {
           const attendance = await this.attendanceModel
             .findById(attendanceId)
             .exec();
-          if (!attendance || attendance.checkOut || !attendance.checkIn) return;
+          if (!attendance || attendance.checkOut || !attendance.checkIn)
+            return false;
 
           attendance.checkOut = new Date(
             attendance.checkIn.getTime() + 4 * HOUR_MS,
@@ -102,9 +112,26 @@ export class InngestFunctionsService {
           attendance.dayType = DayType.HALF_DAY;
           attendance.status = AttendanceStatus.LATE;
           await attendance.save();
+          return true;
         });
 
-        return { reminderSent: true };
+        if (closed) {
+          await step.run('notify-auto-check-out', async () => {
+            const employee = await this.employeeModel
+              .findById(employeeId)
+              .select('userId')
+              .lean()
+              .exec();
+            if (!employee) return;
+
+            await this.notifications.notify(
+              [employee.userId],
+              autoCheckOutContent(),
+            );
+          });
+        }
+
+        return { reminderSent: true, closed };
       },
     );
   }
@@ -122,23 +149,42 @@ export class InngestFunctionsService {
 
         await step.sleep('wait-24-hours', '24h');
 
-        await step.run('remind-admin', async () => {
-          const adminEmail = this.config.get<string>('ADMIN_EMAIL');
-          if (!adminEmail) return;
-
+        const pending = await step.run('load-pending-leave', async () => {
           const leave = await this.leaveModel
             .findById(leaveApplicationId)
             .lean()
             .exec();
-          if (!leave || leave.status !== LeaveStatus.PENDING) return;
+          if (!leave || leave.status !== LeaveStatus.PENDING) return null;
 
           const employee = await this.employeeModel
             .findById(leave.employeeId)
             .lean()
             .exec();
-          const { subject, html } = leaveReminderEmail({
+
+          return {
+            employeeName: employee ? fullName(employee) : 'An employee',
             department: employee?.department ?? 'No Department',
             startDate: formatCairoDate(leave.startDate),
+            demo: employee ? isDemoEmail(employee.email) : false,
+          };
+        });
+
+        if (!pending) return;
+
+        await step.run('notify-admins', () =>
+          this.notifications.notifyAdmins(
+            leaveReminderContent(pending.employeeName),
+            { demo: pending.demo },
+          ),
+        );
+
+        await step.run('email-admin', async () => {
+          const adminEmail = this.config.get<string>('ADMIN_EMAIL');
+          if (!adminEmail) return;
+
+          const { subject, html } = leaveReminderEmail({
+            department: pending.department,
+            startDate: pending.startDate,
           });
           await this.mail.send({ to: adminEmail, subject, html });
         });
@@ -183,6 +229,7 @@ export class InngestFunctionsService {
           return employees
             .filter((employee) => !unavailable.has(String(employee._id)))
             .map((employee) => ({
+              userId: String(employee.userId),
               firstName: employee.firstName,
               email: employee.email,
               department: employee.department ?? 'No Department',
@@ -190,6 +237,13 @@ export class InngestFunctionsService {
         });
 
         if (absent.length > 0) {
+          await step.run('notify-absent-employees', () =>
+            this.notifications.notify(
+              absent.map((employee) => employee.userId),
+              absenceReminderContent(),
+            ),
+          );
+
           await step.run('send-reminder-emails', async () => {
             await Promise.allSettled(
               absent.map((employee) => {
