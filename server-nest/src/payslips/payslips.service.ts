@@ -18,6 +18,8 @@ import type { Employee } from '../employees/schemas/employee.schema.js';
 import { SalariesService } from '../salaries/salaries.service.js';
 import { CreatePayslipDto } from './dto/create-payslip.dto.js';
 import { Payslip } from './schemas/payslip.schema.js';
+import { payslipIssuedContent } from '../notifications/notification-content.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 type PopulatedEmployee = Employee & { _id: unknown };
 
@@ -29,6 +31,7 @@ export class PayslipsService {
     private readonly employees: EmployeesService,
     private readonly salaries: SalariesService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(dto: CreatePayslipDto, actor: JwtPayload) {
@@ -75,6 +78,11 @@ export class PayslipsService {
                 netSalary,
               }),
             },
+            session,
+          );
+          await this.notifications.notify(
+            [employee.userId],
+            payslipIssuedContent(period),
             session,
           );
           return created;

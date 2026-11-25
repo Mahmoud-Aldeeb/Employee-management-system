@@ -6,6 +6,7 @@ import { PayslipsService } from './payslips.service.js';
 import { Payslip, PayslipSchema } from './schemas/payslip.schema.js';
 import { SalariesModule } from '../salaries/salaries.module.js';
 import { AuditModule } from '../audit/audit.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AuditModule } from '../audit/audit.module.js';
     EmployeesModule,
     SalariesModule,
     AuditModule,
+    NotificationsModule,
   ],
   controllers: [PayslipsController],
   providers: [PayslipsService],
