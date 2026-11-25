@@ -5,23 +5,30 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import type { Connection, Model } from 'mongoose';
+import { AuditService } from '../audit/audit.service.js';
+import { AuditAction } from '../audit/audit.types.js';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { LeaveStatus } from '../common/enums/leave-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
+import { cairoDay } from '../common/utils/cairo-time.js';
+import { withTransaction } from '../common/utils/with-transaction.js';
+import { isDemoEmail } from '../demo/demo.constants.js';
+import { fullName } from '../employees/employee-name.js';
 import { EmployeesService } from '../employees/employees.service.js';
 import type { Employee } from '../employees/schemas/employee.schema.js';
 import { InngestService } from '../inngest/inngest.service.js';
+import {
+  leaveDecisionContent,
+  leaveRequestedContent,
+} from '../notifications/notification-content.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { CreateLeaveDto } from './dto/create-leave.dto.js';
 import { LeaveBalanceService } from './leave-balance.service.js';
+import { formatLeavePeriod } from './leave-period.js';
 import { startOfUtcDay } from './policy/leave-calendar.js';
 import { LeaveApplication } from './schemas/leave-application.schema.js';
-import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import type { Connection, Model } from 'mongoose';
-import { AuditAction } from '../audit/audit.types.js';
-import { AuditService } from '../audit/audit.service.js';
-import { withTransaction } from '../common/utils/with-transaction.js';
-import { fullName } from '../employees/employee-name.js';
-import { cairoDay, formatCairoDate } from '../common/utils/cairo-time.js';
 
 type PopulatedEmployee = Employee & { _id: unknown };
 
@@ -43,6 +50,7 @@ export class LeaveService {
     private readonly balances: LeaveBalanceService,
     private readonly inngest: InngestService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(userId: string, dto: CreateLeaveDto) {
@@ -71,13 +79,30 @@ export class LeaveService {
       endDate,
     });
 
-    const leave = await this.leaveModel.create({
-      employeeId: employee._id,
-      type: dto.type,
-      startDate,
-      endDate,
-      reason: dto.reason,
-      status: LeaveStatus.PENDING,
+    const leave = await withTransaction(this.connection, async (session) => {
+      const [created] = await this.leaveModel.create(
+        [
+          {
+            employeeId: employee._id,
+            type: dto.type,
+            startDate,
+            endDate,
+            reason: dto.reason,
+            status: LeaveStatus.PENDING,
+          },
+        ],
+        { session },
+      );
+      await this.notifications.notifyAdmins(
+        leaveRequestedContent({
+          employeeName: fullName(employee),
+          leaveType: dto.type,
+          period: formatLeavePeriod(startDate, endDate),
+        }),
+        { demo: isDemoEmail(employee.email) },
+        session,
+      );
+      return created;
     });
 
     try {
@@ -157,7 +182,7 @@ export class LeaveService {
     }
 
     const owner = employee ? fullName(employee) : 'Unknown employee';
-    const period = `${formatCairoDate(leave.startDate)} - ${formatCairoDate(leave.endDate)}`;
+    const period = formatLeavePeriod(leave.startDate, leave.endDate);
 
     await withTransaction(this.connection, async (session) => {
       leave.status = status;
@@ -172,6 +197,13 @@ export class LeaveService {
         },
         session,
       );
+      if (employee) {
+        await this.notifications.notify(
+          [employee.userId],
+          leaveDecisionContent({ status, leaveType: leave.type, period }),
+          session,
+        );
+      }
     });
 
     return { success: true, data: leave };
