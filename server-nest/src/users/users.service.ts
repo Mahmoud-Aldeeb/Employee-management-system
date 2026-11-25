@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { ClientSession, Model } from 'mongoose';
 import { User } from './schemas/user.schema.js';
+import { Role } from '../common/enums/role.enum.js';
 
 type NewUser = Pick<User, 'email' | 'password' | 'role'>;
 type UserChanges = Partial<Pick<User, 'email' | 'password' | 'role'>>;
@@ -34,6 +35,14 @@ export class UsersService {
 
   findByIdWithPassword(id: string) {
     return this.userModel.findById(id).select('+password').exec();
+  }
+
+  findAdmins() {
+    return this.userModel
+      .find({ role: Role.ADMIN })
+      .select('email')
+      .lean()
+      .exec();
   }
 
   updatePassword(id: string, hashedPassword: string) {
