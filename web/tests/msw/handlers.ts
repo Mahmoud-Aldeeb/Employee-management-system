@@ -32,4 +32,7 @@ export const unreadCount = (count: number) =>
     HttpResponse.json({ count }),
   );
 
-export const defaultHandlers = [unreadCount(0)];
+export const demoStatus = (enabled: boolean) =>
+  http.get("/api/demo/status", () => HttpResponse.json({ enabled }));
+
+export const defaultHandlers = [unreadCount(0), demoStatus(false)];

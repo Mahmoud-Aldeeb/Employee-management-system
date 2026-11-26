@@ -1,15 +1,22 @@
-import { PencilIcon, Trash2Icon } from 'lucide-react';
+import { MailIcon, PencilIcon, Trash2Icon } from 'lucide-react';
 import type { Employee } from '@/types';
 
 interface EmployeeCardProps {
   employee: Employee;
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
+  onResendInvite: (employee: Employee) => void;
 }
 
-export default function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCardProps) {
+export default function EmployeeCard({
+  employee,
+  onEdit,
+  onDelete,
+  onResendInvite,
+}: EmployeeCardProps) {
   const fullName = `${employee.firstName} ${employee.lastName}`;
   const initials = `${employee.firstName[0] ?? ''}${employee.lastName[0] ?? ''}`.toUpperCase();
+  const invited = Boolean(employee.user?.invitedAt) && !employee.isDeleted;
 
   return (
     <div className="card card-hover relative overflow-hidden">
@@ -28,6 +35,11 @@ export default function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCar
             DELETED
           </span>
         )}
+        {invited && (
+          <span className="rounded bg-amber-500/90 px-2.5 py-1 text-xs font-medium text-white">
+            INVITED
+          </span>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 p-4 sm:p-5">
@@ -37,6 +49,16 @@ export default function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCar
         </div>
         {!employee.isDeleted && (
           <div className="flex shrink-0 gap-2">
+            {invited && (
+              <button
+                type="button"
+                onClick={() => onResendInvite(employee)}
+                aria-label={`Resend invite to ${fullName}`}
+                className="flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-colors hover:border-amber-200 hover:text-amber-600"
+              >
+                <MailIcon className="size-4" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onEdit(employee)}

@@ -2,16 +2,19 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useMemo } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { z } from 'zod';
 import Field from '@/components/ui/Field';
+import { useDemoStatus } from '@/hooks/use-demo';
 import { useCreateEmployee, useUpdateEmployee } from '@/hooks/use-employees';
 import { DEPARTMENTS } from '@/lib/constants';
 import { getErrorMessage } from '@/lib/errors';
-import type { Employee } from '@/types';
+import type { Employee, InviteStatus } from '@/types';
 
 const amount = z.number({ error: 'Enter a valid number' }).min(0, 'Must be 0 or more');
+const PASSWORD_RULE = 'Use at least 8 characters';
 
 const fields = {
   firstName: z.string().trim().min(1, 'First name is required'),
@@ -27,21 +30,25 @@ const fields = {
   employmentStatus: z.enum(['ACTIVE', 'INACTIVE']),
   email: z.email('Enter a valid email address'),
   role: z.enum(['EMPLOYEE', 'ADMIN']),
+  sendInvite: z.boolean(),
 };
 
-const createSchema = z.object({
-  ...fields,
-  password: z.string().min(8, 'Use at least 8 characters'),
-});
+function buildCreateSchema(inviteAvailable: boolean) {
+  return z.object({ ...fields, password: z.string() }).refine(
+    (values) =>
+      (inviteAvailable && values.sendInvite) || values.password.length >= 8,
+    { path: ['password'], error: PASSWORD_RULE },
+  );
+}
 
 const editSchema = z.object({
   ...fields,
   password: z
     .string()
-    .refine((value) => value === '' || value.length >= 8, 'Use at least 8 characters'),
+    .refine((value) => value === '' || value.length >= 8, PASSWORD_RULE),
 });
 
-type EmployeeFormValues = z.infer<typeof createSchema>;
+type EmployeeFormValues = z.infer<typeof editSchema>;
 
 interface EmployeeFormProps {
   initialData?: Employee;
@@ -65,7 +72,20 @@ function toDefaultValues(employee?: Employee): EmployeeFormValues {
     email: employee?.email ?? '',
     role: employee?.user?.role ?? 'EMPLOYEE',
     password: '',
+    sendInvite: employee === undefined,
   };
+}
+
+function announceCreated(invite: InviteStatus | undefined) {
+  if (invite === 'QUEUED') {
+    toast.success('Employee created. An invitation email is on its way.');
+  } else if (invite === 'FAILED') {
+    toast.error(
+      'Employee created, but the invitation could not be sent. Use "Resend invite" on their card.',
+    );
+  } else {
+    toast.success('Employee created');
+  }
 }
 
 const sectionTitle = 'mb-5 border-b border-slate-100 pb-4 text-base font-medium text-slate-900 sm:mb-6';
@@ -73,20 +93,29 @@ const sectionGrid = 'grid grid-cols-1 gap-4 text-sm text-slate-700 sm:grid-cols-
 
 export default function EmployeeForm({ initialData, onSuccess, onCancel }: EmployeeFormProps) {
   const isEdit = Boolean(initialData);
+  const demoStatus = useDemoStatus();
+  const inviteAvailable = !isEdit && demoStatus.data === false;
+  const schema = useMemo(
+    () => (isEdit ? editSchema : buildCreateSchema(inviteAvailable)),
+    [isEdit, inviteAvailable],
+  );
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EmployeeFormValues>({
-    resolver: zodResolver(isEdit ? editSchema : createSchema),
+    resolver: zodResolver(schema),
     defaultValues: toDefaultValues(initialData),
   });
+  const sendInvite = useWatch({ control, name: 'sendInvite' });
+  const inviting = inviteAvailable && sendInvite;
 
   const onSubmit = handleSubmit(async (values) => {
-    const { password, department, employmentStatus, ...rest } = values;
+    const { password, sendInvite: wantsInvite, department, employmentStatus, ...rest } = values;
     const common = { ...rest, ...(department ? { department } : {}) };
 
     try {
@@ -96,7 +125,11 @@ export default function EmployeeForm({ initialData, onSuccess, onCancel }: Emplo
           input: { ...common, employmentStatus, ...(password ? { password } : {}) },
         });
       } else {
-        await createEmployee.mutateAsync({ ...common, password });
+        const created = await createEmployee.mutateAsync({
+          ...common,
+          ...(inviteAvailable && wantsInvite ? {} : { password }),
+        });
+        announceCreated(created.invite);
       }
       onSuccess();
     } catch (error) {
@@ -207,19 +240,41 @@ export default function EmployeeForm({ initialData, onSuccess, onCancel }: Emplo
           >
             <input id="email" type="email" autoComplete="off" {...register('email')} />
           </Field>
-          <Field
-            label={isEdit ? 'Change Password' : 'Temporary Password'}
-            htmlFor="password"
-            error={errors.password?.message}
-          >
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder={isEdit ? 'Leave blank to keep current' : undefined}
-              {...register('password')}
-            />
-          </Field>
+          {inviteAvailable && (
+            <div className="flex items-start gap-3 sm:col-span-2">
+              <input
+                id="sendInvite"
+                type="checkbox"
+                aria-describedby="sendInvite-hint"
+                className="mt-0.5 size-4 w-4 shrink-0 p-0"
+                {...register('sendInvite')}
+              />
+              <div>
+                <label htmlFor="sendInvite" className="block">
+                  Send an invitation email instead of setting a password
+                </label>
+                <p id="sendInvite-hint" className="mt-0.5 text-xs text-slate-500">
+                  The employee chooses their own password from a link that works once and expires
+                  in 48 hours.
+                </p>
+              </div>
+            </div>
+          )}
+          {!inviting && (
+            <Field
+              label={isEdit ? 'Change Password' : 'Password'}
+              htmlFor="password"
+              error={errors.password?.message}
+            >
+              <input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                placeholder={isEdit ? 'Leave blank to keep current' : undefined}
+                {...register('password')}
+              />
+            </Field>
+          )}
           <Field label="System Role" htmlFor="role" error={errors.role?.message}>
             <select id="role" {...register('role')}>
               <option value="EMPLOYEE">Employee</option>

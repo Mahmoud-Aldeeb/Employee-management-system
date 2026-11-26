@@ -5,14 +5,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import Loading from '@/components/Loading';
 import Modal from '@/components/ui/Modal';
-import { useDebounce } from '@/hooks/use-debounce';
-import { useDeleteEmployee, useEmployees } from '@/hooks/use-employees';
+import { useDemoStatus } from '@/hooks/use-demo';
+import { useDeleteEmployee, useEmployees, useResendInvite } from '@/hooks/use-employees';
 import { DEPARTMENTS } from '@/lib/constants';
 import { getErrorMessage } from '@/lib/errors';
 import { exportToCSV, type CsvColumn } from '@/lib/export-csv';
 import type { Employee } from '@/types';
 import EmployeeCard from './EmployeeCard';
 import EmployeeForm from './EmployeeForm';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const EXPORT_COLUMNS: CsvColumn[] = [
   { label: 'First Name', key: 'firstName' },
@@ -34,6 +35,8 @@ export default function EmployeesView() {
   const debouncedSearch = useDebounce(search, 400);
   const { data: employees, isPending, isError, error } = useEmployees(department);
   const deleteEmployee = useDeleteEmployee();
+  const resendInvite = useResendInvite();
+  useDemoStatus();
 
   useEffect(() => {
     if (isError) toast.error(getErrorMessage(error, 'Failed to load employees'));
@@ -62,6 +65,19 @@ export default function EmployeesView() {
       toast.success('Employee deleted');
     } catch (deleteError) {
       toast.error(getErrorMessage(deleteError));
+    }
+  };
+
+  const handleResendInvite = async (employee: Employee) => {
+    try {
+      const { invite } = await resendInvite.mutateAsync(employee.id ?? employee._id);
+      if (invite === 'QUEUED') {
+        toast.success(`Invitation sent to ${employee.email}`);
+      } else {
+        toast.error('The invitation could not be sent. Try again in a moment.');
+      }
+    } catch (resendError) {
+      toast.error(getErrorMessage(resendError));
     }
   };
 
@@ -132,6 +148,7 @@ export default function EmployeesView() {
                 employee={employee}
                 onEdit={setEditing}
                 onDelete={handleDelete}
+                onResendInvite={handleResendInvite}
               />
             ))
           )}

@@ -37,7 +37,7 @@ test("creates an employee from the form", async () => {
   await dialog.getByLabel("Position").fill("Developer");
   await dialog.getByLabel("Basic Salary").fill("5000");
   await dialog.getByLabel("Work Email").fill(email);
-  await dialog.getByLabel("Temporary Password").fill(password);
+  await dialog.getByLabel("Password", { exact: true }).fill(password);
   await dialog.getByRole("button", { name: "Create Employee" }).click();
 
   await expect(dialog).toBeHidden();
@@ -70,7 +70,7 @@ test("rejects a duplicate email", async () => {
   await dialog.getByLabel("Join Date").fill("2026-01-15");
   await dialog.getByLabel("Position").fill("Tester");
   await dialog.getByLabel("Work Email").fill(email);
-  await dialog.getByLabel("Temporary Password").fill(password);
+  await dialog.getByLabel("Password", { exact: true }).fill(password);
   await dialog.getByRole("button", { name: "Create Employee" }).click();
 
   await expect(page.getByText("Email already exists")).toBeVisible();
