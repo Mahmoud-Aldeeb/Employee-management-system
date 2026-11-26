@@ -53,4 +53,11 @@ export class UsersService {
       .updateOne({ _id: id }, { password: hashedPassword, invitedAt: null })
       .exec();
   }
+
+  findByEmailIgnoringCase(email: string) {
+    return this.userModel
+      .findOne({ email })
+      .collation({ locale: 'en', strength: 2 })
+      .exec();
+  }
 }
