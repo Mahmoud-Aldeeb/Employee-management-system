@@ -31,13 +31,14 @@ test.describe("team calendar", () => {
     await page.getByRole("link", { name: "Team Calendar" }).click();
 
     const title = page.getByRole("heading", { level: 2 }).first();
-    const current = await title.textContent();
+    await expect(title).toHaveText(/^[A-Za-z]+ \d{4}$/);
+    const current = (await title.textContent()) ?? "";
 
     await page.getByRole("button", { name: "Next month" }).click();
-    await expect(title).not.toHaveText(current ?? "");
+    await expect(title).not.toHaveText(current);
 
     await page.getByRole("button", { name: "Today" }).click();
-    await expect(title).toHaveText(current ?? "");
+    await expect(title).toHaveText(current);
     await expect(page.getByRole("button", { name: /\(today\)/ })).toBeVisible();
   });
 
