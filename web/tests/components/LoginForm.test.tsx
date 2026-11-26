@@ -98,4 +98,14 @@ describe('LoginForm', () => {
     expect(await screen.findByText('Invalid email or password')).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
   });
+
+  it('links to the password reset page', () => {
+    renderForm();
+
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
+
 });
