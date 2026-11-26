@@ -7,6 +7,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { createLoginRateLimiter } from './common/rate-limit/login-rate-limiter.js';
 import { createSecurityHeaders } from './common/security/security-headers.js';
 import { setupSwagger } from './docs/setup-swagger.js';
+import { createForgotPasswordRateLimiter } from './common/rate-limit/forgot-password-rate-limiter.js';
 
 const helmetMiddleware =
   (
@@ -37,6 +38,7 @@ export function configureApp(app: INestApplication) {
   app.use(cookieParser());
   app.use(express.json());
   app.use('/api/auth/login', createLoginRateLimiter());
+  app.use('/api/auth/forgot-password', createForgotPasswordRateLimiter());
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,
