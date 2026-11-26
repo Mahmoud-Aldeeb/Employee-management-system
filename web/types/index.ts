@@ -263,3 +263,30 @@ export interface AuditLogPage {
   total: number;
   totalPages: number;
 }
+
+export type NotificationType =
+  | "LEAVE_REQUESTED"
+  | "LEAVE_DECIDED"
+  | "LEAVE_REMINDER"
+  | "PAYSLIP_ISSUED"
+  | "ATTENDANCE_REMINDER"
+  | "AUTO_CHECK_OUT";
+
+export interface NotificationEntry {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPage {
+  data: NotificationEntry[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  unreadCount: number;
+}
