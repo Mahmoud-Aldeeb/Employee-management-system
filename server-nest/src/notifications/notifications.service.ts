@@ -1,51 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { ClientSession, Model, Types } from 'mongoose';
-import { isDemoEmail } from '../demo/demo.constants.js';
-import { UsersService } from '../users/users.service.js';
+import type { Model } from 'mongoose';
 import type { ListNotificationsQueryDto } from './dto/list-notifications-query.dto.js';
-import type {
-  NotificationContent,
-  NotificationPage,
-} from './notification.types.js';
+import type { NotificationPage } from './notification.types.js';
 import { Notification } from './schemas/notification.schema.js';
-
-type RecipientId = string | Types.ObjectId;
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectModel(Notification.name)
     private readonly notificationModel: Model<Notification>,
-    private readonly users: UsersService,
   ) {}
-
-  async notify(
-    recipients: RecipientId[],
-    content: NotificationContent,
-    session?: ClientSession,
-  ) {
-    const unique = [...new Set(recipients.map(String))];
-    if (unique.length === 0) return;
-
-    await this.notificationModel.insertMany(
-      unique.map((userId) => ({ userId, ...content })),
-      { session },
-    );
-  }
-
-  async notifyAdmins(
-    content: NotificationContent,
-    scope: { demo: boolean },
-    session?: ClientSession,
-  ) {
-    const admins = await this.users.findAdmins();
-    const recipients = admins
-      .filter((admin) => isDemoEmail(admin.email) === scope.demo)
-      .map((admin) => admin._id);
-
-    await this.notify(recipients, content, session);
-  }
 
   async list(
     userId: string,

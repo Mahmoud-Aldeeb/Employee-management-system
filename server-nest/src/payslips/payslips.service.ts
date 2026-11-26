@@ -19,7 +19,7 @@ import { SalariesService } from '../salaries/salaries.service.js';
 import { CreatePayslipDto } from './dto/create-payslip.dto.js';
 import { Payslip } from './schemas/payslip.schema.js';
 import { payslipIssuedContent } from '../notifications/notification-content.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationPublisher } from '../notifications/notification-publisher.service.js';
 
 type PopulatedEmployee = Employee & { _id: unknown };
 
@@ -31,7 +31,7 @@ export class PayslipsService {
     private readonly employees: EmployeesService,
     private readonly salaries: SalariesService,
     private readonly audit: AuditService,
-    private readonly notifications: NotificationsService,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   async create(dto: CreatePayslipDto, actor: JwtPayload) {

@@ -28,7 +28,7 @@ import {
   autoCheckOutContent,
   leaveReminderContent,
 } from '../notifications/notification-content.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationPublisher } from '../notifications/notification-publisher.service.js';
 import { InngestService } from './inngest.service.js';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -45,7 +45,7 @@ export class InngestFunctionsService {
     private readonly mail: MailService,
     private readonly config: ConfigService,
     private readonly demo: DemoService,
-    private readonly notifications: NotificationsService,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   getFunctions() {

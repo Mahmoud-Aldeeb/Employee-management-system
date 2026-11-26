@@ -23,7 +23,7 @@ import {
   leaveDecisionContent,
   leaveRequestedContent,
 } from '../notifications/notification-content.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationPublisher } from '../notifications/notification-publisher.service.js';
 import { CreateLeaveDto } from './dto/create-leave.dto.js';
 import { LeaveBalanceService } from './leave-balance.service.js';
 import { formatLeavePeriod } from './leave-period.js';
@@ -50,7 +50,7 @@ export class LeaveService {
     private readonly balances: LeaveBalanceService,
     private readonly inngest: InngestService,
     private readonly audit: AuditService,
-    private readonly notifications: NotificationsService,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   async create(userId: string, dto: CreateLeaveDto) {
