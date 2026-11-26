@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { Employee, EmploymentStatus, Role } from "@/types";
+import type { Employee, EmploymentStatus, InviteStatus, Role } from "@/types";
 import { invalidateAppData } from "@/lib/invalidate";
 
 export const EMPLOYEES_KEY = ["employees"] as const;
@@ -21,7 +21,7 @@ export interface EmployeePayload {
   allowances: number;
   deductions: number;
   joinDate: string;
-  password: string;
+  password?: string;
   role: Role;
   bio: string;
 }
@@ -29,6 +29,12 @@ export interface EmployeePayload {
 export type EmployeeUpdatePayload = Partial<EmployeePayload> & {
   employmentStatus?: EmploymentStatus;
 };
+
+export interface CreateEmployeeResult {
+  success: boolean;
+  employee: Employee;
+  invite: InviteStatus;
+}
 
 export function useEmployees(
   department = "",
@@ -52,7 +58,10 @@ export function useCreateEmployee() {
 
   return useMutation({
     mutationFn: async (input: EmployeePayload) => {
-      const { data } = await api.post("/employees", input);
+      const { data } = await api.post<CreateEmployeeResult>(
+        "/employees",
+        input,
+      );
       return data;
     },
     onSuccess: () => invalidateAppData(queryClient),
@@ -71,6 +80,21 @@ export function useUpdateEmployee() {
       input: EmployeeUpdatePayload;
     }) => {
       const { data } = await api.put(`/employees/${id}`, input);
+      return data;
+    },
+    onSuccess: () => invalidateAppData(queryClient),
+  });
+}
+
+export function useResendInvite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post<{
+        success: boolean;
+        invite: InviteStatus;
+      }>(`/employees/${id}/invite`);
       return data;
     },
     onSuccess: () => invalidateAppData(queryClient),

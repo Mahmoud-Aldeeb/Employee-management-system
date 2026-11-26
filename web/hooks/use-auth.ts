@@ -115,3 +115,28 @@ export function useChangePassword() {
     },
   });
 }
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      await api.post("/auth/forgot-password", { email });
+    },
+  });
+}
+
+interface ResetPasswordVariables {
+  token: string;
+  newPassword: string;
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (variables: ResetPasswordVariables) => {
+      const { data } = await api.post<{ portal: PortalRole }>(
+        "/auth/reset-password",
+        variables,
+      );
+      return data.portal;
+    },
+  });
+}
