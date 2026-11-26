@@ -8,7 +8,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
+import { sha256 } from '../common/utils/sha256.js';
 import { Role } from '../common/enums/role.enum.js';
 import { isDemoEmail } from '../demo/demo.constants.js';
 import { SessionsService } from '../sessions/sessions.service.js';
@@ -26,8 +27,6 @@ interface RefreshPayload extends JwtPayload {
 
 const DEMO_SESSION_LIMIT = 200;
 
-const sha256 = (value: string) =>
-  createHash('sha256').update(value).digest('hex');
 const refreshExpiry = () => new Date(Date.now() + REFRESH_TTL_S * 1000);
 
 @Injectable()
