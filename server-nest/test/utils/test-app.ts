@@ -9,10 +9,17 @@ import { configureApp } from '../../src/app.setup.js';
 import { Role } from '../../src/common/enums/role.enum.js';
 import { InngestService } from '../../src/inngest/inngest.service.js';
 import { UsersService } from '../../src/users/users.service.js';
+import { MailService } from '../../src/mail/mail.service.js';
 
 export interface InngestEvent {
   name: string;
   data: Record<string, unknown>;
+}
+
+export interface SentMail {
+  to: string;
+  subject: string;
+  html: string;
 }
 
 export interface TestContextOptions {
@@ -20,10 +27,10 @@ export interface TestContextOptions {
 }
 
 export async function createTestContext(options: TestContextOptions = {}) {
- const mongod = await MongoMemoryReplSet.create({
-  replSet: { count: 1, storageEngine: 'wiredTiger' },
-  instanceOpts: [{ launchTimeout: 60_000 }],
-});
+  const mongod = await MongoMemoryReplSet.create({
+    replSet: { count: 1, storageEngine: 'wiredTiger' },
+    instanceOpts: [{ launchTimeout: 60_000 }],
+  });
   process.env.NODE_ENV = 'test';
   process.env.MONGODB_URL = mongod.getUri('ems-test');
   process.env.JWT_SECRET = 'test-access-secret-0123456789-abcdefghij';
@@ -41,9 +48,18 @@ export async function createTestContext(options: TestContextOptions = {}) {
     },
   };
 
+  const mails: SentMail[] = [];
+  const fakeMail = {
+    send: async (mail: SentMail) => {
+      mails.push(mail);
+    },
+  };
+
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(InngestService)
     .useValue(fakeInngest)
+    .overrideProvider(MailService)
+    .useValue(fakeMail)
     .compile();
 
   const app: INestApplication = moduleRef.createNestApplication({
@@ -86,5 +102,5 @@ export async function createTestContext(options: TestContextOptions = {}) {
     await mongod.stop();
   }
 
-  return { app, server, events, createUser, login, close };
+  return { app, server, events, mails, createUser, login, close };
 }
