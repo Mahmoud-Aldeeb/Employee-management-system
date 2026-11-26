@@ -4,8 +4,11 @@ import type { ClientSession, Model } from 'mongoose';
 import { User } from './schemas/user.schema.js';
 import { Role } from '../common/enums/role.enum.js';
 
-type NewUser = Pick<User, 'email' | 'password' | 'role'>;
-type UserChanges = Partial<Pick<User, 'email' | 'password' | 'role'>>;
+type NewUser = Pick<User, 'email' | 'password' | 'role'> &
+  Partial<Pick<User, 'invitedAt'>>;
+type UserChanges = Partial<
+  Pick<User, 'email' | 'password' | 'role' | 'invitedAt'>
+>;
 
 @Injectable()
 export class UsersService {
@@ -47,7 +50,7 @@ export class UsersService {
 
   updatePassword(id: string, hashedPassword: string) {
     return this.userModel
-      .updateOne({ _id: id }, { password: hashedPassword })
+      .updateOne({ _id: id }, { password: hashedPassword, invitedAt: null })
       .exec();
   }
 }
