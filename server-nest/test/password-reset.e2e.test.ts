@@ -96,6 +96,12 @@ describe('Password reset', () => {
     expect(mail.html).toContain('/reset-password#token=');
   });
 
+  it('finds the account whatever the capitalization of the email', async () => {
+    const target = await accounts.findResetTarget('Forgetful@TEST.local');
+
+    expect(target).toMatchObject({ email: MAIN.email });
+  });
+
   it('applies a cooldown after a link was sent', async () => {
     const userId = await userIdOf(FRESH.email);
     expect(await accounts.isResetCoolingDown(userId)).toBe(false);

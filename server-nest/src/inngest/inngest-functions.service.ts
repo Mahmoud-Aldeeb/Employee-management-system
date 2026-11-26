@@ -92,7 +92,12 @@ export class InngestFunctionsService {
               department: employee.department ?? 'No Department',
               checkInTime: formatCairoTime(attendance.checkIn),
             });
-            await this.mail.send({ to: employee.email, subject, html });
+            await this.mail.send({
+              to: employee.email,
+              subject,
+              html,
+              kind: 'reminder',
+            });
             return true;
           },
         );
@@ -189,7 +194,12 @@ export class InngestFunctionsService {
             department: pending.department,
             startDate: pending.startDate,
           });
-          await this.mail.send({ to: adminEmail, subject, html });
+          await this.mail.send({
+            to: adminEmail,
+            subject,
+            html,
+            kind: 'reminder',
+          });
         });
       },
     );
@@ -254,7 +264,12 @@ export class InngestFunctionsService {
                   firstName: employee.firstName,
                   department: employee.department,
                 });
-                return this.mail.send({ to: employee.email, subject, html });
+                return this.mail.send({
+                  to: employee.email,
+                  subject,
+                  html,
+                  kind: 'reminder',
+                });
               }),
             );
           });

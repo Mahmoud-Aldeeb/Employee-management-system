@@ -36,7 +36,7 @@ export class AccountFunctions {
   }
 
   async findResetTarget(email: string): Promise<AccountTarget | null> {
-    const user = await this.users.findByEmail(email);
+    const user = await this.users.findByEmailIgnoringCase(email);
     if (!user || isDemoEmail(user.email)) return null;
 
     return this.targetOf(user);
@@ -60,7 +60,7 @@ export class AccountFunctions {
       link: this.linkFor('/reset-password', token),
     });
 
-    await this.mail.send({ to: target.email, subject, html });
+    await this.mail.send({ to: target.email, subject, html, kind: 'account' });
   }
 
   async sendInvitation(userId: string) {
@@ -74,7 +74,7 @@ export class AccountFunctions {
       link: this.linkFor('/set-password', token),
     });
 
-    await this.mail.send({ to: target.email, subject, html });
+    await this.mail.send({ to: target.email, subject, html, kind: 'account' });
     return true;
   }
 
@@ -91,7 +91,7 @@ export class AccountFunctions {
           this.sendInvitation(userId),
         );
 
-        return { sent };
+        return { sent, reason: sent ? null : 'no-pending-invitation' };
       },
     );
   }
@@ -108,12 +108,12 @@ export class AccountFunctions {
         const target = await step.run('find-account', () =>
           this.findResetTarget(email),
         );
-        if (!target) return { sent: false };
+        if (!target) return { sent: false, reason: 'no-eligible-account' };
 
         const cooling = await step.run('check-cooldown', () =>
           this.isResetCoolingDown(target.userId),
         );
-        if (cooling) return { sent: false };
+        if (cooling) return { sent: false, reason: 'cooldown' };
 
         await step.run('send-reset-email', () => this.sendResetEmail(target));
 

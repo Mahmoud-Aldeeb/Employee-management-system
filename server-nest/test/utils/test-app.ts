@@ -20,6 +20,7 @@ export interface SentMail {
   to: string;
   subject: string;
   html: string;
+  kind: 'account' | 'reminder';
 }
 
 export interface TestContextOptions {
