@@ -1,5 +1,6 @@
 import { AUDIT_ACTION_LABELS, AUDIT_ACTION_TONES, type AuditTone } from '@/lib/constants';
-import { formatAuditChange, formatAuditTimestamp } from '@/lib/audit';
+import { formatAuditChange } from '@/lib/audit';
+import { formatTimestamp } from '@/lib/timestamps';
 import type { AuditLogEntry } from '@/types';
 
 const TONE_CLASSES: Record<AuditTone, string> = {
@@ -32,7 +33,7 @@ export default function AuditLogList({ entries, dimmed }: AuditLogListProps) {
     >
       <ul className="divide-y divide-slate-100">
         {entries.map((entry) => {
-          const { date, time } = formatAuditTimestamp(entry.createdAt);
+          const { date, time } = formatTimestamp(entry.createdAt);
 
           return (
             <li key={entry.id} className="px-4 py-4 sm:px-6">
