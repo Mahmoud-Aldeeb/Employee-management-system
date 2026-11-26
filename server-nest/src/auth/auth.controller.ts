@@ -19,6 +19,9 @@ import { LoginDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { userAgentOf } from './request-user-agent.js';
 import type { JwtPayload } from './strategies/jwt.strategy.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
+import { PasswordResetService } from './password-reset.service.js';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -26,6 +29,7 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly cookies: AuthCookies,
+    private readonly passwordReset: PasswordResetService,
   ) {}
 
   @Post('login')
@@ -62,6 +66,26 @@ export class AuthController {
     await this.auth.logout(req.cookies?.[REFRESH_COOKIE]);
     this.cookies.clear(res);
     return { success: true };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Email a password reset link; the answer never reveals whether the email exists',
+  })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.passwordReset.requestReset(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Set a new password with the one-time token from an invitation or reset email',
+  })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.passwordReset.completeSetup(dto.token, dto.newPassword);
   }
 
   @UseGuards(JwtAuthGuard)
