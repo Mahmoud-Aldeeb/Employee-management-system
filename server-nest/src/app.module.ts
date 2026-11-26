@@ -28,6 +28,9 @@ import { HealthModule } from './health/health.module.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri: config.getOrThrow<string>('MONGODB_URL'),
+        maxPoolSize: 20,
+        serverSelectionTimeoutMS: 5_000,
+        socketTimeoutMS: 45_000,
       }),
     }),
 
