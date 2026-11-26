@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Put,
@@ -35,16 +36,31 @@ export class EmployeesController {
   findAll(@Query() query: ListEmployeesQueryDto): Promise<object[]> {
     return this.employees.findAll(query.department);
   }
+
   @Post()
   @ApiOperation({
-    summary: 'Create an employee and their login account (admin)',
+    summary:
+      'Create an employee; without a password the employee receives an invitation email (admin)',
   })
   async create(
     @Body() dto: CreateEmployeeDto,
     @CurrentUser() actor: JwtPayload,
   ) {
-    const employee = await this.employees.create(dto, actor);
-    return { success: true, employee };
+    const { employee, invite } = await this.employees.create(dto, actor);
+    return { success: true, employee, invite };
+  }
+
+  @Post(':id/invite')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Send the invitation again to an employee who has not set a password yet (admin)',
+  })
+  resendInvite(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @CurrentUser() actor: JwtPayload,
+  ) {
+    return this.employees.resendInvite(id, actor);
   }
 
   @Put(':id')

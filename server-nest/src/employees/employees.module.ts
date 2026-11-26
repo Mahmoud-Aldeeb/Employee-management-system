@@ -7,6 +7,7 @@ import { Employee, EmployeeSchema } from './schemas/employee.schema.js';
 import { SalariesModule } from '../salaries/salaries.module.js';
 import { SessionsModule } from '../sessions/sessions.module.js';
 import { AuditModule } from '../audit/audit.module.js';
+import { InngestClientModule } from '../inngest/inngest-client.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuditModule } from '../audit/audit.module.js';
     SalariesModule,
     SessionsModule,
     AuditModule,
+    InngestClientModule,
   ],
   controllers: [EmployeesController],
   providers: [EmployeesService],

@@ -2,18 +2,22 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import type { Connection, Model } from 'mongoose';
 import { describeValues, diffFields } from '../audit/audit-diff.js';
-import { AuditAction, type AuditEvent } from '../audit/audit.types.js';
 import { AuditService } from '../audit/audit.service.js';
+import { AuditAction, type AuditEvent } from '../audit/audit.types.js';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { EmploymentStatus } from '../common/enums/employment-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
 import { withTransaction } from '../common/utils/with-transaction.js';
+import { InngestService } from '../inngest/inngest.service.js';
 import {
   SalariesService,
   toSalaryView,
@@ -43,9 +47,12 @@ const SALARY_AUDIT_FIELDS = [
   'deductions',
 ] as const;
 
+export type InviteStatus = 'NOT_REQUIRED' | 'QUEUED' | 'FAILED';
+
 interface PopulatedUser {
   email: string;
   role: Role;
+  invitedAt: Date | null;
 }
 
 interface UpdateAuditInput {
@@ -57,13 +64,17 @@ interface UpdateAuditInput {
 
 @Injectable()
 export class EmployeesService {
+  private readonly logger = new Logger(EmployeesService.name);
+
   constructor(
     @InjectModel(Employee.name) private readonly employeeModel: Model<Employee>,
     @InjectConnection() private readonly connection: Connection,
+    private readonly config: ConfigService,
     private readonly users: UsersService,
     private readonly salaries: SalariesService,
     private readonly sessions: SessionsService,
     private readonly audit: AuditService,
+    private readonly inngest: InngestService,
   ) {}
 
   async findAll(department?: string) {
@@ -71,7 +82,10 @@ export class EmployeesService {
     const employees = await this.employeeModel
       .find(filter)
       .sort({ createdAt: -1 })
-      .populate<{ userId: PopulatedUser | null }>('userId', 'email role')
+      .populate<{ userId: PopulatedUser | null }>(
+        'userId',
+        'email role invitedAt',
+      )
       .lean()
       .exec();
 
@@ -89,7 +103,11 @@ export class EmployeesService {
         allowances: salary.allowances,
         deductions: salary.deductions,
         user: employee.userId
-          ? { email: employee.userId.email, role: employee.userId.role }
+          ? {
+              email: employee.userId.email,
+              role: employee.userId.role,
+              invitedAt: employee.userId.invitedAt ?? null,
+            }
           : null,
       };
     });
@@ -114,7 +132,17 @@ export class EmployeesService {
   }
 
   async create(dto: CreateEmployeeDto, actor: JwtPayload) {
-    const hashed = await bcrypt.hash(dto.password, 10);
+    const invited = dto.password === undefined;
+    if (invited && this.config.get<boolean>('DEMO_MODE') === true) {
+      throw new BadRequestException(
+        'Invitations are disabled in demo mode. Set a password instead.',
+      );
+    }
+
+    const hashed = await bcrypt.hash(
+      dto.password ?? randomBytes(32).toString('hex'),
+      10,
+    );
     const role = dto.role ?? Role.EMPLOYEE;
     const salary = {
       basicSalary: dto.basicSalary ?? 0,
@@ -122,10 +150,16 @@ export class EmployeesService {
       deductions: dto.deductions ?? 0,
     };
 
+    let employee: EmployeeDocument;
     try {
-      return await withTransaction(this.connection, async (session) => {
+      employee = await withTransaction(this.connection, async (session) => {
         const user = await this.users.create(
-          { email: dto.email, password: hashed, role },
+          {
+            email: dto.email,
+            password: hashed,
+            role,
+            invitedAt: invited ? new Date() : null,
+          },
           session,
         );
         const [created] = await this.employeeModel.create(
@@ -167,6 +201,38 @@ export class EmployeesService {
     } catch (error) {
       throw this.mapError(error);
     }
+
+    const invite: InviteStatus = invited
+      ? await this.queueInvite(String(employee.userId))
+      : 'NOT_REQUIRED';
+
+    return { employee, invite };
+  }
+
+  async resendInvite(id: string, actor: JwtPayload) {
+    const employee = await this.employeeModel.findById(id).exec();
+    if (!employee) throw new NotFoundException('Employee not found');
+    if (employee.isDeleted) {
+      throw new BadRequestException('This employee is deactivated');
+    }
+
+    const user = await this.users.findById(employee.userId.toString());
+    if (!user?.invitedAt) {
+      throw new BadRequestException('This employee has already set a password');
+    }
+
+    const invite = await this.queueInvite(user.id);
+    if (invite === 'QUEUED') {
+      await this.audit.recordBestEffort({
+        action: AuditAction.EMPLOYEE_INVITED,
+        actor,
+        targetId: employee._id,
+        targetLabel: fullName(employee),
+        changes: [],
+      });
+    }
+
+    return { success: true, invite };
   }
 
   async update(id: string, dto: UpdateEmployeeDto, actor: JwtPayload) {
@@ -195,7 +261,10 @@ export class EmployeesService {
     const userChanges: Parameters<UsersService['updateById']>[1] = {};
     if (dto.email) userChanges.email = dto.email;
     if (role) userChanges.role = role;
-    if (password) userChanges.password = await bcrypt.hash(password, 10);
+    if (password) {
+      userChanges.password = await bcrypt.hash(password, 10);
+      userChanges.invitedAt = null;
+    }
 
     const events = await this.collectAuditEvents(employee, actor, {
       employeeChanges,
@@ -276,6 +345,16 @@ export class EmployeesService {
     }
     await this.employeeModel.updateOne({ _id: employee._id }, { bio }).exec();
     return { success: true };
+  }
+
+  private async queueInvite(userId: string): Promise<InviteStatus> {
+    try {
+      await this.inngest.send('auth/invite.requested', { userId });
+      return 'QUEUED';
+    } catch (error) {
+      this.logger.warn(`Failed to queue the invitation: ${String(error)}`);
+      return 'FAILED';
+    }
   }
 
   private async collectAuditEvents(

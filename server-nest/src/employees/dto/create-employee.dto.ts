@@ -11,6 +11,7 @@ import {
   IsString,
   Min,
   MinLength,
+  MaxLength,
 } from 'class-validator';
 import { DEPARTMENTS } from '../../common/constants/departments.js';
 import { Role } from '../../common/enums/role.enum.js';
@@ -70,10 +71,17 @@ export class CreateEmployeeDto {
   @IsDateString()
   joinDate!: string;
 
-  @ApiProperty({ minLength: 8, example: 'Temp#12345' })
+  @ApiPropertyOptional({
+    minLength: 8,
+    maxLength: 72,
+    example: 'Temp#12345',
+    description: 'Leave it out to email the employee an invitation instead',
+  })
+  @IsOptional()
   @IsString()
   @MinLength(8)
-  password!: string;
+  @MaxLength(72)
+  password?: string;
 
   @ApiPropertyOptional({ enum: Role, default: Role.EMPLOYEE })
   @IsOptional()
