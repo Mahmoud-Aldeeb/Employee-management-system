@@ -1,11 +1,14 @@
 import { getModelToken } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Role } from '../src/common/enums/role.enum.js';
 import { Notification } from '../src/notifications/schemas/notification.schema.js';
 import { employeePayload, leaveWindow } from './utils/factories.js';
 import { createTestContext } from './utils/test-app.js';
+import { absenceReminderContent } from '../src/notifications/notification-content.js';
+import { NotificationPublisher } from '../src/notifications/notification-publisher.service.js';
+import { NotificationType } from '../src/notifications/notification.types.js';
 
 const ADMIN = { email: 'admin@test.local', password: 'Admin#12345' };
 const SECOND_ADMIN = { email: 'admin2@test.local', password: 'Admin#67890' };
@@ -218,5 +221,30 @@ describe('Notifications', () => {
     expect(
       indexes.some((index) => index.expireAfterSeconds === 90 * 24 * 60 * 60),
     ).toBe(true);
+  });
+
+  it('fans out to many recipients in batches and ignores duplicates', async () => {
+    const publisher = ctx.app.get(NotificationPublisher, { strict: false });
+    const model = ctx.app.get<Model<Notification>>(
+      getModelToken(Notification.name),
+      {
+        strict: false,
+      },
+    );
+    const recipients = Array.from(
+      { length: 1_200 },
+      () => new Types.ObjectId(),
+    );
+
+    await publisher.notify(
+      [...recipients, recipients[0]],
+      absenceReminderContent(),
+    );
+
+    expect(
+      await model.countDocuments({
+        type: NotificationType.ATTENDANCE_REMINDER,
+      }),
+    ).toBe(1_200);
   });
 });
