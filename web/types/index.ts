@@ -10,6 +10,8 @@ export type DayType =
 export type LeaveType = "SICK" | "CASUAL" | "ANNUAL";
 export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+export type InviteStatus = "NOT_REQUIRED" | "QUEUED" | "FAILED";
+
 export interface SessionUser {
   id: string;
   email: string;
@@ -33,7 +35,7 @@ export interface Employee {
   joinDate: string;
   isDeleted: boolean;
   bio: string;
-  user?: { email: string; role: Role } | null;
+  user?: { email: string; role: Role; invitedAt?: string | null } | null;
 }
 
 export type Profile = Pick<Employee, "firstName" | "lastName" | "email"> &
@@ -231,6 +233,7 @@ export type AuditAction =
   | "EMPLOYEE_UPDATED"
   | "EMPLOYEE_DEACTIVATED"
   | "EMPLOYEE_PASSWORD_RESET"
+  | "EMPLOYEE_INVITED"
   | "SALARY_UPDATED"
   | "LEAVE_APPROVED"
   | "LEAVE_REJECTED"

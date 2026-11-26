@@ -33,6 +33,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   PAYSLIP_CREATED: "Payslip created",
   ADMIN_LOGIN: "Admin sign-in",
   PASSWORD_CHANGED: "Password changed",
+  EMPLOYEE_INVITED: "Invitation sent",
 };
 
 export const AUDIT_ACTION_TONES: Record<AuditAction, AuditTone> = {
@@ -47,6 +48,7 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, AuditTone> = {
   PAYSLIP_CREATED: "info",
   ADMIN_LOGIN: "neutral",
   PASSWORD_CHANGED: "warning",
+  EMPLOYEE_INVITED: "info",
 };
 
 export const AUDIT_ACTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
