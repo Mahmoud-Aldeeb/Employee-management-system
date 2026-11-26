@@ -19,6 +19,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLogout } from '@/hooks/use-auth';
 import { useProfile } from '@/hooks/use-profile';
 import type { SessionUser } from '@/types';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface NavItem {
   name: string;
@@ -76,13 +78,20 @@ export default function Sidebar({ user, mobileOpen, onClose }: SidebarProps) {
               <p className="text-[11px] text-slate-500 font-medium">Management System</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            className="lg:hidden text-slate-400 hover:text-white p-1"
-          >
-            <XIcon size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <div className="hidden lg:block">
+              <ErrorBoundary>
+                <NotificationBell placement="sidebar" />
+              </ErrorBoundary>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close menu"
+              className="lg:hidden text-slate-400 hover:text-white p-1"
+            >
+              <XIcon size={20} />
+            </button>
+          </div>
         </div>
       </div>
 

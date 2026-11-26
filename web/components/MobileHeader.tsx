@@ -1,6 +1,8 @@
 'use client';
 
 import { MenuIcon, UserIcon } from 'lucide-react';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 export default function MobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
   return (
@@ -16,6 +18,11 @@ export default function MobileHeader({ onOpenMenu }: { onOpenMenu: () => void })
       <div className="flex items-center gap-2">
         <UserIcon className="size-5 text-slate-700" />
         <span className="text-sm font-semibold tracking-wide text-slate-800">Employee MS</span>
+      </div>
+      <div className="ml-auto">
+        <ErrorBoundary>
+          <NotificationBell placement="header" />
+        </ErrorBoundary>
       </div>
     </header>
   );
