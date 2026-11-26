@@ -26,3 +26,10 @@ export const signedOut = [
 
 export const profile = (data: Record<string, unknown>) =>
   http.get("/api/profile", () => HttpResponse.json(data));
+
+export const unreadCount = (count: number) =>
+  http.get("/api/notifications/unread-count", () =>
+    HttpResponse.json({ count }),
+  );
+
+export const defaultHandlers = [unreadCount(0)];
