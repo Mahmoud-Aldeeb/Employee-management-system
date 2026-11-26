@@ -15,6 +15,7 @@ const ADMIN_PAGES = [
   "/settings",
   "/analytics",
   "/audit-log",
+  "/notifications",
 ];
 
 test.describe("mobile layout", () => {
