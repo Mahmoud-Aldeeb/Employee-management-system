@@ -51,9 +51,11 @@ describe('OpenAPI documentation', () => {
     expect(document.components.schemas.LoginDto.required).toEqual(
       expect.arrayContaining(['email', 'password']),
     );
-    expect(document.components.schemas.CreateEmployeeDto.required).toEqual(
-      expect.arrayContaining(['firstName', 'email', 'joinDate', 'password']),
+    const required = document.components.schemas.CreateEmployeeDto.required;
+    expect(required).toEqual(
+      expect.arrayContaining(['firstName', 'email', 'joinDate']),
     );
+    expect(required).not.toContain('password');
     expect(document.components.schemas).toHaveProperty(['UpdateEmployeeDto']);
   });
 

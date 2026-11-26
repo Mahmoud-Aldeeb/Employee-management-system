@@ -13,7 +13,7 @@ interface EmployeeRow {
   basicSalary: number;
   isDeleted: boolean;
   employmentStatus: string;
-  user: { email: string; role: string } | null;
+  user: { email: string; role: string; invitedAt: string | null } | null;
 }
 
 describe('Employees', () => {
@@ -80,7 +80,11 @@ describe('Employees', () => {
 
     expect(created).toBeDefined();
     expect(created?.id).toBe(employeeId);
-    expect(created?.user).toEqual({ email: employee.email, role: 'EMPLOYEE' });
+    expect(created?.user).toEqual({
+      email: employee.email,
+      role: 'EMPLOYEE',
+      invitedAt: null,
+    });
   });
 
   it('rejects a duplicate email', async () => {
