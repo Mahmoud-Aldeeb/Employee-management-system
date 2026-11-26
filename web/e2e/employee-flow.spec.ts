@@ -74,8 +74,11 @@ test("sara sees her leave balance and the casual leave rule is enforced", async 
   await dialog.getByRole("button", { name: "Submit" }).click();
 
   await expect(
-    page.getByText("limited to 2 working days per request"),
+    page
+      .getByRole("status")
+      .filter({ hasText: "limited to 2 working days per request" }),
   ).toBeVisible();
+
   await dialog.getByRole("button", { name: "Cancel" }).click();
 });
 
