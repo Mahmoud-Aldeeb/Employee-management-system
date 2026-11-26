@@ -30,6 +30,7 @@ import {
 } from '../notifications/notification-content.js';
 import { NotificationPublisher } from '../notifications/notification-publisher.service.js';
 import { InngestService } from './inngest.service.js';
+import { AccountFunctions } from './account-functions.service.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -46,6 +47,7 @@ export class InngestFunctionsService {
     private readonly config: ConfigService,
     private readonly demo: DemoService,
     private readonly notifications: NotificationPublisher,
+    private readonly account: AccountFunctions,
   ) {}
 
   getFunctions() {
@@ -54,6 +56,7 @@ export class InngestFunctionsService {
       this.leaveApplicationReminder(),
       this.attendanceReminderCron(),
       this.demoReset(),
+      ...this.account.getFunctions(),
     ];
   }
 

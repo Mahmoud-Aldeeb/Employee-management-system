@@ -81,3 +81,55 @@ export function attendanceReminderEmail(params: {
     ),
   };
 }
+
+const button = (href: string, label: string) =>
+  `<p><a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;">${escapeHtml(label)}</a></p>`;
+
+const linkFallback = (link: string) =>
+  paragraph(
+    'If the button does not work, copy this link into your browser:',
+    'font-size:13px;color:#666;',
+  ) + paragraph(escapeHtml(link), 'font-size:13px;word-break:break-all;');
+
+export function inviteEmail(params: { firstName: string; link: string }) {
+  const firstName = escapeHtml(params.firstName);
+
+  return {
+    subject: 'Welcome to EMS - Set your password',
+    html: layout(
+      `<h2>Hi ${firstName},</h2>` +
+        paragraph(
+          'An account has been created for you on the Employee Management System.',
+        ) +
+        paragraph(
+          'Choose your password to get started. This link works once and expires in 48 hours.',
+        ) +
+        button(params.link, 'Set your password') +
+        linkFallback(params.link),
+    ),
+  };
+}
+
+export function passwordResetEmail(params: {
+  firstName: string;
+  link: string;
+}) {
+  const firstName = escapeHtml(params.firstName);
+
+  return {
+    subject: 'Reset your EMS password',
+    html: layout(
+      `<h2>Hi ${firstName},</h2>` +
+        paragraph('We received a request to reset your password.') +
+        paragraph(
+          'Use the button below to choose a new one. This link works once and expires in 1 hour.',
+        ) +
+        button(params.link, 'Reset your password') +
+        linkFallback(params.link) +
+        paragraph(
+          'If you did not ask for this, you can ignore this email: your password stays the same.',
+          'font-size:13px;color:#666;',
+        ),
+    ),
+  };
+}
