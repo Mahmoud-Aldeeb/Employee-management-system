@@ -8,6 +8,11 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 
+interface ExceptionBody {
+  message?: string | string[];
+  code?: string;
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -17,14 +22,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const payload = exception.getResponse();
-      const raw =
-        typeof payload === 'string'
-          ? payload
-          : (payload as { message?: string | string[] }).message;
+      const body: ExceptionBody = typeof payload === 'string' ? {} : payload;
+      const raw = typeof payload === 'string' ? payload : body.message;
       const message = Array.isArray(raw)
         ? raw.join(', ')
         : (raw ?? exception.message);
-      res.status(exception.getStatus()).json({ error: message });
+      res.status(exception.getStatus()).json({
+        error: message,
+        ...(body.code ? { code: body.code } : {}),
+      });
       return;
     }
 
