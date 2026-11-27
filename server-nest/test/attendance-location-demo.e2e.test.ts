@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Role } from '../src/common/enums/role.enum.js';
 import { DemoService } from '../src/demo/demo.service.js';
 import { createTestContext } from './utils/test-app.js';
+import { employeePayload } from './utils/factories.js';
 
 const REAL_ADMIN = { email: 'admin@test.local', password: 'Admin#12345' };
 
@@ -56,6 +57,28 @@ describe('Work locations in demo mode', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.checkInLocation).toBeNull();
+  });
+
+  it('keeps restricting real employees while the demo is enabled', async () => {
+    const created = await realAdmin
+      .post('/api/workplaces')
+      .send({ name: 'Real Office', latitude: 30.0444, longitude: 31.2357 });
+    expect(created.status).toBe(201);
+
+    const payload = employeePayload('real.staff@test.local');
+    expect((await realAdmin.post('/api/employees').send(payload)).status).toBe(
+      201,
+    );
+    const staff = await ctx.login(payload.email, payload.password, 'employee');
+
+    expect((await staff.get('/api/attendance/policy')).body).toEqual({
+      locationRequired: true,
+      workplaces: [{ name: 'Real Office', radiusMeters: 150 }],
+    });
+    expect((await staff.post('/api/attendance')).status).toBe(422);
+    expect(
+      (await demoEmployee.get('/api/attendance/policy')).body.locationRequired,
+    ).toBe(false);
   });
 
   it('clears the demo locations added by visitors when the demo resets', async () => {

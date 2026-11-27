@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { isDemoEmail } from '../../demo/demo.constants.js';
 import { LocationStatus } from '../../common/enums/location-status.enum.js';
 import { WorkplacesService } from '../../workplaces/workplaces.service.js';
 import {
@@ -18,6 +18,7 @@ export interface LocationPolicy {
 }
 
 interface Subject {
+  email: string;
   canCheckInAnywhere?: boolean;
 }
 
@@ -36,16 +37,10 @@ const unverified = (accuracy: number | null): LocationProof => ({
 
 @Injectable()
 export class AttendanceLocationService {
-  constructor(
-    private readonly workplaces: WorkplacesService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly workplaces: WorkplacesService) {}
 
   async policyFor(employee: Subject): Promise<LocationPolicy> {
-    if (
-      this.config.get<boolean>('DEMO_MODE') === true ||
-      employee.canCheckInAnywhere
-    ) {
+    if (isDemoEmail(employee.email) || employee.canCheckInAnywhere) {
       return { required: false, workplaces: [] };
     }
 
