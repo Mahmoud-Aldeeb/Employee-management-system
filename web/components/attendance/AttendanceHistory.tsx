@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { getDayTypeDisplay, getWorkingHoursDisplay } from '@/lib/attendance';
 import { dayFromKey } from '@/lib/dates';
+import { describeLocationProof } from '@/lib/location-proof';
 import type { AttendanceRecord } from '@/types';
 
 const STATUS_BADGE = {
@@ -11,6 +12,24 @@ const STATUS_BADGE = {
 
 function formatTime(value: string | null) {
   return value ? format(new Date(value), 'hh:mm a') : '-';
+}
+
+function LocationCell({ record }: { record: AttendanceRecord }) {
+  const checkIn = describeLocationProof(record.checkInLocation);
+  const checkOut = describeLocationProof(record.checkOutLocation);
+
+  if (!checkIn && !checkOut) return <>-</>;
+
+  return (
+    <div className="space-y-0.5 text-xs">
+      {checkIn && <p className="text-slate-600">In: {checkIn}</p>}
+      {checkOut && (
+        <p className={record.checkOutLocation?.status === 'INSIDE' ? 'text-slate-600' : 'text-amber-600'}>
+          Out: {checkOut}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function AttendanceHistory({ history }: { history: AttendanceRecord[] }) {
@@ -28,13 +47,14 @@ export default function AttendanceHistory({ history }: { history: AttendanceReco
               <th>Check Out</th>
               <th className="hidden md:table-cell">Working Hours</th>
               <th className="hidden md:table-cell">Day Type</th>
+              <th className="hidden lg:table-cell">Location</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {history.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-slate-400">
+                <td colSpan={7} className="py-12 text-center text-slate-400">
                   No records found
                 </td>
               </tr>
@@ -57,6 +77,9 @@ export default function AttendanceHistory({ history }: { history: AttendanceReco
                       ) : (
                         '-'
                       )}
+                    </td>
+                    <td className="hidden lg:table-cell">
+                      <LocationCell record={record} />
                     </td>
                     <td>
                       <span className={`badge ${STATUS_BADGE[record.status]}`}>{record.status}</span>

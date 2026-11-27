@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import type { SessionUser } from "@/types";
+import type { AttendancePolicy, SessionUser } from "@/types";
 
 export const admin: SessionUser = {
   id: "u1",
@@ -35,4 +35,11 @@ export const unreadCount = (count: number) =>
 export const demoStatus = (enabled: boolean) =>
   http.get("/api/demo/status", () => HttpResponse.json({ enabled }));
 
-export const defaultHandlers = [unreadCount(0), demoStatus(false)];
+export const attendancePolicy = (policy: AttendancePolicy) =>
+  http.get("/api/attendance/policy", () => HttpResponse.json(policy));
+
+export const defaultHandlers = [
+  unreadCount(0),
+  demoStatus(false),
+  attendancePolicy({ locationRequired: false, workplaces: [] }),
+];
