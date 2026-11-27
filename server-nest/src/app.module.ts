@@ -16,6 +16,7 @@ import { PayslipsModule } from './payslips/payslips.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { DemoModule } from './demo/demo.module.js';
 import { HealthModule } from './health/health.module.js';
+import { WorkplacesModule } from './workplaces/workplaces.module.js';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { HealthModule } from './health/health.module.js';
     HealthModule,
     AuditModule,
     NotificationsModule,
+    WorkplacesModule,
   ],
 })
 export class AppModule {}
