@@ -4,14 +4,18 @@ import { LockIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import Loading from '@/components/Loading';
+import { useSession } from '@/hooks/use-auth';
 import { useProfile } from '@/hooks/use-profile';
 import { getErrorMessage } from '@/lib/errors';
 import ChangePasswordModal from './ChangePasswordModal';
 import ProfileForm from './ProfileForm';
+import WorkplacesSection from './workplaces/WorkplacesSection';
 
 export default function SettingsView() {
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const { data: session } = useSession();
   const { data: profile, isPending, isError, error } = useProfile();
+  const isAdmin = session?.role === 'ADMIN';
 
   useEffect(() => {
     if (isError) toast.error(getErrorMessage(error, 'Failed to load profile'));
@@ -27,6 +31,8 @@ export default function SettingsView() {
       </div>
 
       {profile && <ProfileForm profile={profile} />}
+
+      {isAdmin && <WorkplacesSection />}
 
       <div className="card flex max-w-md flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
         <div className="flex items-center gap-3">
