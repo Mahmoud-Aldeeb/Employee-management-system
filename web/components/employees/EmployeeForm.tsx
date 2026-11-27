@@ -31,6 +31,7 @@ const fields = {
   email: z.email('Enter a valid email address'),
   role: z.enum(['EMPLOYEE', 'ADMIN']),
   sendInvite: z.boolean(),
+  canCheckInAnywhere: z.boolean(),
 };
 
 function buildCreateSchema(inviteAvailable: boolean) {
@@ -73,6 +74,7 @@ function toDefaultValues(employee?: Employee): EmployeeFormValues {
     role: employee?.user?.role ?? 'EMPLOYEE',
     password: '',
     sendInvite: employee === undefined,
+    canCheckInAnywhere: employee?.canCheckInAnywhere ?? false,
   };
 }
 
@@ -226,6 +228,23 @@ export default function EmployeeForm({ initialData, onSuccess, onCancel }: Emplo
               </select>
             </Field>
           )}
+          <div className="flex items-start gap-3 sm:col-span-2">
+            <input
+              id="canCheckInAnywhere"
+              type="checkbox"
+              aria-describedby="canCheckInAnywhere-hint"
+              className="mt-0.5 size-4 w-4 shrink-0 p-0"
+              {...register('canCheckInAnywhere')}
+            />
+            <div>
+              <label htmlFor="canCheckInAnywhere" className="block">
+                Can check in from anywhere
+              </label>
+              <p id="canCheckInAnywhere-hint" className="mt-0.5 text-xs text-slate-500">
+                For field or remote staff who do not have to be at a work location to clock in.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

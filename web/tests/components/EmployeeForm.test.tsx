@@ -41,6 +41,7 @@ const newEmployeeBody = {
   deductions: 0,
   email: 'mona@test.local',
   role: 'EMPLOYEE',
+  canCheckInAnywhere: false,
 };
 
 function renderForm(initialData?: Employee) {
@@ -200,6 +201,7 @@ describe('EmployeeForm', () => {
       role: 'EMPLOYEE',
       department: 'Design',
       employmentStatus: 'ACTIVE',
+      canCheckInAnywhere: false,
     });
   });
 
@@ -212,4 +214,27 @@ describe('EmployeeForm', () => {
 
     expect(await screen.findByText('Use at least 8 characters')).toBeInTheDocument();
   });
+
+  it('sends the exemption when the employee may check in from anywhere', async () => {
+    const user = userEvent.setup();
+    const capture: { body?: unknown } = {};
+    server.use(serveCreate('QUEUED', capture));
+    const onSuccess = renderForm();
+    await screen.findByLabelText(INVITE_LABEL);
+
+    await fillRequiredFields(user);
+    await user.click(screen.getByLabelText('Can check in from anywhere'));
+    await user.click(screen.getByRole('button', { name: 'Create Employee' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(capture.body).toEqual({ ...newEmployeeBody, canCheckInAnywhere: true });
+  });
+
+  it('shows the current exemption when editing', () => {
+    renderForm({ ...existing, canCheckInAnywhere: true });
+
+    expect(screen.getByLabelText('Can check in from anywhere')).toBeChecked();
+  });
+
+
 });

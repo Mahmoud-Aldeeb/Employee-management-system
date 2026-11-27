@@ -24,6 +24,7 @@ export interface EmployeePayload {
   password?: string;
   role: Role;
   bio: string;
+  canCheckInAnywhere?: boolean;
 }
 
 export type EmployeeUpdatePayload = Partial<EmployeePayload> & {
