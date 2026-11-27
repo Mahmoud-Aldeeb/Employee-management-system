@@ -13,7 +13,9 @@ import { cairoDay, cairoMinutesOfDay } from '../common/utils/cairo-time.js';
 import { isDuplicateKeyError } from '../common/utils/mongo-errors.js';
 import { EmployeesService } from '../employees/employees.service.js';
 import { InngestService } from '../inngest/inngest.service.js';
-import { Attendance } from './schemas/attendance.schema.js';
+import type { LocationSampleDto } from './dto/clock.dto.js';
+import { AttendanceLocationService } from './location/attendance-location.service.js';
+import { Attendance, type LocationProof } from './schemas/attendance.schema.js';
 
 const LATE_AFTER_MINUTES = 9 * 60;
 
@@ -25,9 +27,10 @@ export class AttendanceService {
     private readonly attendanceModel: Model<Attendance>,
     private readonly employees: EmployeesService,
     private readonly inngest: InngestService,
+    private readonly location: AttendanceLocationService,
   ) {}
 
-  async clockInOut(userId: string) {
+  async clockInOut(userId: string, sample?: LocationSampleDto) {
     const employee = await this.employees.findByUserId(userId);
     if (!employee) throw new NotFoundException('Employee not found');
     if (employee.isDeleted) {
@@ -43,7 +46,13 @@ export class AttendanceService {
       .exec();
 
     if (!existing) {
-      const attendance = await this.createCheckIn(employee._id, date, now);
+      const proof = await this.location.verifyCheckIn(employee, sample, now);
+      const attendance = await this.createCheckIn(
+        employee._id,
+        date,
+        now,
+        proof,
+      );
       await this.scheduleAutoCheckOut(
         String(employee._id),
         String(attendance._id),
@@ -58,10 +67,29 @@ export class AttendanceService {
       existing.checkOut = now;
       existing.workingHours = workingHours;
       existing.dayType = this.dayTypeFor(workingHours);
+      existing.checkOutLocation = await this.location.proofForCheckOut(
+        employee,
+        sample,
+        now,
+      );
       await existing.save();
     }
 
     return { success: true, type: 'CHECK_OUT', data: existing };
+  }
+
+  async getPolicy(userId: string) {
+    const employee = await this.employees.findByUserId(userId);
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const policy = await this.location.policyFor(employee);
+    return {
+      locationRequired: policy.required,
+      workplaces: policy.workplaces.map(({ name, radiusMeters }) => ({
+        name,
+        radiusMeters,
+      })),
+    };
   }
 
   async getHistory(userId: string, limit: number) {
@@ -81,6 +109,7 @@ export class AttendanceService {
     employeeId: Types.ObjectId,
     date: Date,
     now: Date,
+    proof: LocationProof | null,
   ) {
     try {
       return await this.attendanceModel.create({
@@ -91,6 +120,7 @@ export class AttendanceService {
           cairoMinutesOfDay(now) > LATE_AFTER_MINUTES
             ? AttendanceStatus.LATE
             : AttendanceStatus.PRESENT,
+        checkInLocation: proof,
       });
     } catch (error) {
       if (isDuplicateKeyError(error)) {

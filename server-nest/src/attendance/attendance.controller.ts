@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -12,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { AttendanceService } from './attendance.service.js';
 import { AttendanceQueryDto } from './dto/attendance-query.dto.js';
+import { ClockDto } from './dto/clock.dto.js';
 
 @ApiTags('Attendance')
 @ApiCookieAuth()
@@ -23,10 +25,11 @@ export class AttendanceController {
   @Post()
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Clock in, or clock out when already clocked in today',
+    summary:
+      'Clock in, or clock out when already clocked in today; the device location is required to clock in when work locations are set',
   })
-  clockInOut(@CurrentUser() user: JwtPayload) {
-    return this.attendance.clockInOut(user.id);
+  clockInOut(@CurrentUser() user: JwtPayload, @Body() dto: ClockDto) {
+    return this.attendance.clockInOut(user.id, dto.location);
   }
 
   @Get()
@@ -36,5 +39,13 @@ export class AttendanceController {
     @Query() query: AttendanceQueryDto,
   ) {
     return this.attendance.getHistory(user.id, query.limit ?? 30);
+  }
+
+  @Get('policy')
+  @ApiOperation({
+    summary: 'Whether the signed-in employee must share a location to clock in',
+  })
+  policy(@CurrentUser() user: JwtPayload) {
+    return this.attendance.getPolicy(user.id);
   }
 }
