@@ -12,6 +12,7 @@ import type { DemoDataset } from './demo-dataset.js';
 import { DEMO_EMAIL_PATTERN } from './demo.constants.js';
 import { AuditLog } from '../audit/schemas/audit-log.schema.js';
 import { Notification } from '../notifications/schemas/notification.schema.js';
+import { Workplace } from '../workplaces/schemas/workplace.schema.js';
 
 @Injectable()
 export class DemoDataStore {
@@ -29,6 +30,8 @@ export class DemoDataStore {
     @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
     @InjectModel(Notification.name)
     private readonly notifications: Model<Notification>,
+    @InjectModel(Workplace.name)
+    private readonly workplaces: Model<Workplace>,
   ) {}
 
   async clear(session: ClientSession) {
@@ -63,6 +66,9 @@ export class DemoDataStore {
       { userId: { $in: userIds } },
       { session },
     );
+
+    await this.workplaces.deleteMany({ isDemo: true }, { session });
+
     await this.users.deleteMany({ _id: { $in: userIds } }, { session });
   }
 
@@ -75,5 +81,6 @@ export class DemoDataStore {
     await this.payslips.insertMany(dataset.payslips, { session });
     await this.auditLogs.insertMany(dataset.auditLogs, { session });
     await this.notifications.insertMany(dataset.notifications, { session });
+    await this.workplaces.insertMany(dataset.workplaces, { session });
   }
 }

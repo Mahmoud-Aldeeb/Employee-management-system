@@ -24,6 +24,7 @@ import {
 } from '../notifications/notification-content.js';
 import type { NotificationContent } from '../notifications/notification.types.js';
 import type { Notification } from '../notifications/schemas/notification.schema.js';
+import type { Workplace } from '../workplaces/schemas/workplace.schema.js';
 
 type WithId<T> = T & { _id: Types.ObjectId };
 
@@ -96,6 +97,13 @@ export interface DemoDataset {
     Pick<
       Notification,
       'userId' | 'type' | 'title' | 'message' | 'link' | 'readAt' | 'createdAt'
+    >
+  >;
+
+  workplaces: Array<
+    Pick<
+      Workplace,
+      'name' | 'latitude' | 'longitude' | 'radiusMeters' | 'isActive' | 'isDemo'
     >
   >;
 }
@@ -384,6 +392,17 @@ const DEMO_SEED = 20_261_119;
 const AUDIT_DECISION_DELAY_HOURS = 5;
 
 const NOTIFICATION_READ_DELAY_HOURS = 2;
+
+const DEMO_WORKPLACES: DemoDataset['workplaces'] = [
+  {
+    name: 'Cairo HQ',
+    latitude: 30.0444,
+    longitude: 31.2357,
+    radiusMeters: 150,
+    isActive: true,
+    isDemo: true,
+  },
+];
 
 interface NotificationInput {
   now: Date;
@@ -820,5 +839,6 @@ export function buildDemoDataset({
     payslips,
     auditLogs,
     notifications,
+    workplaces: DEMO_WORKPLACES,
   };
 }

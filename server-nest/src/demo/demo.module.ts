@@ -31,6 +31,10 @@ import {
   Notification,
   NotificationSchema,
 } from '../notifications/schemas/notification.schema.js';
+import {
+  Workplace,
+  WorkplaceSchema,
+} from '../workplaces/schemas/workplace.schema.js';
 
 @Module({
   imports: [
@@ -44,6 +48,7 @@ import {
       { name: AuthSession.name, schema: AuthSessionSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Notification.name, schema: NotificationSchema },
+      { name: Workplace.name, schema: WorkplaceSchema },
     ]),
     UsersModule,
     AuthModule,
