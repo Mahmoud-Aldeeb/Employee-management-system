@@ -34,6 +34,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   ADMIN_LOGIN: "Admin sign-in",
   PASSWORD_CHANGED: "Password changed",
   EMPLOYEE_INVITED: "Invitation sent",
+  WORKPLACE_CREATED: "Work location added",
+  WORKPLACE_UPDATED: "Work location updated",
+  WORKPLACE_DELETED: "Work location removed",
 };
 
 export const AUDIT_ACTION_TONES: Record<AuditAction, AuditTone> = {
@@ -49,6 +52,9 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, AuditTone> = {
   ADMIN_LOGIN: "neutral",
   PASSWORD_CHANGED: "warning",
   EMPLOYEE_INVITED: "info",
+  WORKPLACE_CREATED: "success",
+  WORKPLACE_UPDATED: "info",
+  WORKPLACE_DELETED: "danger",
 };
 
 export const AUDIT_ACTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];
@@ -70,4 +76,10 @@ export const AUDIT_FIELD_LABELS: Record<string, string> = {
   month: "Month",
   year: "Year",
   status: "Status",
+  name: "Name",
+  latitude: "Latitude",
+  longitude: "Longitude",
+  radiusMeters: "Radius (m)",
+  isActive: "Active",
+  canCheckInAnywhere: "Can check in anywhere",
 };

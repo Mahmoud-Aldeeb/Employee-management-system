@@ -35,6 +35,7 @@ export interface Employee {
   joinDate: string;
   isDeleted: boolean;
   bio: string;
+  canCheckInAnywhere?: boolean;
   user?: { email: string; role: Role; invitedAt?: string | null } | null;
 }
 
@@ -50,6 +51,8 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   workingHours: number | null;
   dayType: DayType | null;
+  checkInLocation?: LocationProof | null;
+  checkOutLocation?: LocationProof | null;
 }
 
 export interface LeaveApplication {
@@ -240,7 +243,10 @@ export type AuditAction =
   | "LEAVE_REOPENED"
   | "PAYSLIP_CREATED"
   | "ADMIN_LOGIN"
-  | "PASSWORD_CHANGED";
+  | "PASSWORD_CHANGED"
+  | "WORKPLACE_CREATED"
+  | "WORKPLACE_UPDATED"
+  | "WORKPLACE_DELETED";
 
 export interface AuditChange {
   field: string;
@@ -292,4 +298,27 @@ export interface NotificationPage {
   total: number;
   totalPages: number;
   unreadCount: number;
+}
+
+export type LocationStatus = "INSIDE" | "OUTSIDE" | "UNVERIFIED";
+
+export interface LocationProof {
+  status: LocationStatus;
+  workplaceName: string | null;
+  distanceMeters: number | null;
+  accuracyMeters: number | null;
+}
+
+export interface AttendancePolicy {
+  locationRequired: boolean;
+  workplaces: { name: string; radiusMeters: number }[];
+}
+
+export interface Workplace {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  isActive: boolean;
 }
