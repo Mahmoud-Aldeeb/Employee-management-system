@@ -48,6 +48,9 @@ export class Employee {
 
   @Prop({ type: String, enum: [...DEPARTMENTS] })
   department?: string;
+
+  @Prop({ type: Boolean, default: false })
+  canCheckInAnywhere!: boolean;
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);

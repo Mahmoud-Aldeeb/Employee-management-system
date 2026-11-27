@@ -12,6 +12,7 @@ import {
   Min,
   MinLength,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
 import { DEPARTMENTS } from '../../common/constants/departments.js';
 import { Role } from '../../common/enums/role.enum.js';
@@ -92,4 +93,13 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsString()
   bio?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Field or remote staff who may clock in away from the work locations',
+  })
+  @IsOptional()
+  @IsBoolean()
+  canCheckInAnywhere?: boolean;
 }

@@ -39,6 +39,7 @@ const EMPLOYEE_AUDIT_FIELDS = [
   'department',
   'joinDate',
   'employmentStatus',
+  'canCheckInAnywhere',
 ] as const;
 
 const SALARY_AUDIT_FIELDS = [
@@ -174,6 +175,7 @@ export class EmployeesService {
               department: dto.department ?? 'Engineering',
               joinDate: new Date(dto.joinDate),
               bio: dto.bio ?? '',
+              canCheckInAnywhere: dto.canCheckInAnywhere ?? false,
             },
           ],
           { session },
