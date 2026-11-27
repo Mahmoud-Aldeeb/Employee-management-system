@@ -9,3 +9,10 @@ export function getErrorMessage(
   }
   return error instanceof Error ? error.message : fallback;
 }
+
+export function getErrorCode(error: unknown) {
+  if (axios.isAxiosError<{ code?: string }>(error)) {
+    return error.response?.data?.code;
+  }
+  return undefined;
+}
