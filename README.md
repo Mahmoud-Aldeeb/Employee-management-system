@@ -40,6 +40,7 @@ This is a rebuild of an earlier JavaScript MERN app. The goal was to move it to 
 - **Dashboard:** one page that adapts to the role. Admins get KPIs, pending leave requests they can approve or reject in place, who is out today, a 7-day attendance trend and a department breakdown; employees get clock in/out, their current salary, leave balance and latest payslip
 - **Audit log:** every administrative action (employee and salary changes, leave decisions, payslips, admin sign-ins, password changes) is recorded with the values before and after, saved in the same transaction as the change and never containing a password or secret; searchable, filterable and paginated, and kept for 180 days
 - **Demo mode:** one-click "Explore as Admin / Employee" with realistic data that resets every night
+- **Work locations:** admins define one or more places (name, position and radius, with a "use my current location" helper). Employees can clock in only when their device is inside an active place; field and remote staff can be exempted one by one. The check runs on the server (haversine distance, with a capped tolerance for the reported GPS accuracy and a freshness check on the reading), clocking out is never blocked but its location is recorded, and only a summary is stored, never raw coordinates. A browser location can be spoofed, so this is a strong deterrent and an audit trail rather than a guarantee
 
 ## Tech stack
 

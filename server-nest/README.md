@@ -19,22 +19,23 @@ NestJS 12 REST API for the Employee Management System.
 
 ## Endpoints
 
-| Area       | Endpoints                                                                                  | Access                           |
-| ---------- | ------------------------------------------------------------------------------------------ | -------------------------------- |
-| Auth       | `POST /api/auth/login`, `/refresh`, `/logout`, `/change-password`, `GET /api/auth/session` | public / signed in               |
-| Employees  | `GET`, `POST /api/employees`, `PUT`, `DELETE /api/employees/:id`                           | admin                            |
-| Profile    | `GET`, `POST /api/profile`                                                                 | signed in                        |
-| Attendance | `POST /api/attendance` (clock in/out), `GET /api/attendance`                               | employee                         |
-| Leave      | `POST`, `GET /api/leave`, `PATCH /api/leave/:id`                                           | signed in / admin for status     |
-| Payslips   | `GET /api/payslips`, `GET /api/payslips/:id`, `POST /api/payslips`                         | owner or admin / admin           |
-| Dashboard  | `GET /api/dashboard`                                                                       | signed in                        |
-| Analytics  | `GET /api/analytics`                                                                       | admin                            |
-| Jobs       | `/api/inngest`                                                                             | Inngest                          |
-| Leave      | `GET /api/leave/balance`, `GET /api/leave/calendar?month=YYYY-MM&department=`              | employee / signed in             |
-| Audit      | `GET /api/audit-logs?action=&search=&from=&to=&page=&limit=`                               | admin                            |
-| Demo       | `GET /api/demo/status`, `POST /api/demo/login`                                             | public (login needs `DEMO_MODE`) |
-| Health     | `GET /api/health`                                                                          | public                           |
-| Docs       | `GET /api/docs` (Swagger UI)                                                               | public                           |
+| Area           | Endpoints                                                                                                                                                              | Access                           |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Auth           | `POST /api/auth/login`, `/refresh`, `/logout`, `/change-password`, `GET /api/auth/session`                                                                             | public / signed in               |
+| Employees      | `GET`, `POST /api/employees`, `PUT`, `DELETE /api/employees/:id`                                                                                                       | admin                            |
+| Profile        | `GET`, `POST /api/profile`                                                                                                                                             | signed in                        |
+| Attendance     | `POST /api/attendance` (clock in/out, the device location is required to clock in when work locations are active), `GET /api/attendance`, `GET /api/attendance/policy` | employee                         |
+| Work locations | `GET`, `POST /api/workplaces`, `PUT`, `DELETE /api/workplaces/:id`                                                                                                     | admin                            |
+| Leave          | `POST`, `GET /api/leave`, `PATCH /api/leave/:id`                                                                                                                       | signed in / admin for status     |
+| Payslips       | `GET /api/payslips`, `GET /api/payslips/:id`, `POST /api/payslips`                                                                                                     | owner or admin / admin           |
+| Dashboard      | `GET /api/dashboard`                                                                                                                                                   | signed in                        |
+| Analytics      | `GET /api/analytics`                                                                                                                                                   | admin                            |
+| Jobs           | `/api/inngest`                                                                                                                                                         | Inngest                          |
+| Leave          | `GET /api/leave/balance`, `GET /api/leave/calendar?month=YYYY-MM&department=`                                                                                          | employee / signed in             |
+| Audit          | `GET /api/audit-logs?action=&search=&from=&to=&page=&limit=`                                                                                                           | admin                            |
+| Demo           | `GET /api/demo/status`, `POST /api/demo/login`                                                                                                                         | public (login needs `DEMO_MODE`) |
+| Health         | `GET /api/health`                                                                                                                                                      | public                           |
+| Docs           | `GET /api/docs` (Swagger UI)                                                                                                                                           | public                           |
 
 ## Security
 
